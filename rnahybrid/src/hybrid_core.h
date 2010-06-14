@@ -26,6 +26,7 @@ int helix_start, helix_end;
 int gx;
 char *t1, *t2, *t3, *t4;
 char *r1, *r2, *r3, *r4;
+char **back_str;
 
 int a1, a2, a3, a4, a5, a6;
 

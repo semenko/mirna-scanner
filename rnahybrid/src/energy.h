@@ -62,7 +62,17 @@ double dli_energy(int i, int j);
 double dl_energy(int i, int j);
 
 double dri_energy(int i, int j);
+
+double r_sr_energy(int i, int j);
  
+double r_dr_energy(int i, int j);
+
+double r_dli_energy(int i, int j);
+
+double r_dl_energy(int i, int j);
+
+double r_dri_energy(int i, int j);
+
 double dangles (int i, int j, int i2, int j2, int k, int l, int k2,int l2);
 
 double sspenalty(int a);
@@ -87,17 +97,29 @@ double bot_stack(int lb, int rb);
 
 double bl_stacking (int t, int b, int i, int j);
 
+double r_bl_stacking (int t, int b, int i, int j);
+
 #define il_stack_open(i,j) tstacki_dg_ar[inpx(i)][inpx((i)+1)][inpy((j)+1)][inpy(j)]
+
+#define r_il_stack_open(i,j) tstacki_dg_ar[inpy(j)][inpy((j)+1)][inpx((i)+1)][inpx(i)]
 
 #define il_stack_close(i,j) tstacki_dg_ar[inpy(j)][inpy((j)-1)][inpx((i)-1)][inpx(i)]
 
+#define r_il_stack_close(i,j) tstacki_dg_ar[inpx(i)][inpx((i)-1)][inpy((j)-1)][inpy(j)]
+
 double int_special(int i, int j, int t, int b);
 
+double r_int_special(int i, int j, int t, int b);
+
 double do_il_special(int i, int j, int k, int l, int u, int v, double e);
+
+double r_do_il_special(int i, int j, int k, int l, int u, int v, double e);
 
 /* double do_il(int i, int j, int k, int l, int u, int v, double e); */
 
 #define do_il(i,j,k,l,u,v,e) ((e)+il_stack_close((l)+1,(v)+1)+il_ent((l)-(k)+(v)-(u))+il_asym((l)-(k),(v)-(u)))
+
+#define r_do_il(i,j,k,l,u,v,e) ((e)+r_il_stack_close((l)+1,(v)+1)+il_ent((l)-(k)+(v)-(u))+il_asym((l)-(k),(v)-(u)))
 
 void init_il_asym_ar();
 

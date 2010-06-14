@@ -187,7 +187,7 @@ int main(int argc, char **argv)
     exit(1);
   }
   else if (hflag) {
-    printf("\nUsage: %s [options] [target sequence] [query sequence].\n\noptions:\n\n  -b <number of hits per target>\n  -c compact output\n  -d <xi>,<theta>\n  -f helix constraint\n  -h help\n  -m <max targetlength>\n  -n <max query length>\n  -u <max internal loop size (per side)>\n  -v <max bulge loop size>\n  -e <energy cut-off>\n  -p <p-value cut-off>\n  -s (3utr_fly|3utr_worm|3utr_human)\n  -g (ps|png|jpg|all)\n  -t <target file>\n  -q <query file>\n\nEither a target file has to be given (FASTA format)\nor one target sequence directly.\n\nEither a query file has to be given (FASTA format)\nor one query sequence directly.\n\nThe helix constraint format is \"from,to\", eg. -f 2,7 forces\nstructures to have a helix from position 2 to 7 with respect to the query.\n\n<xi> and <theta> are the position and shape parameters, respectively,\nof the extreme value distribution assumed for p-value calculation.\nIf omitted, they are estimated from the maximal duplex energy of the query.\nIn that case, a data set name has to be given with the -s flag.\n\n", argv[0]);
+    printf("\nThis version is the latest version as of 3/12/2010\n\nUsage: %s [options] [target sequence] [query sequence].\n\noptions:\n\n  -b <number of hits per target>\n  -c compact output\n  -d <xi>,<theta>\n  -f helix constraint\n  -h help\n  -m <max targetlength>\n  -n <max query length>\n  -u <max internal loop size (per side)>\n  -v <max bulge loop size>\n  -e <energy cut-off>\n  -p <p-value cut-off>\n  -s (3utr_fly|3utr_worm|3utr_human)\n  -g (ps|png|jpg|all)\n  -t <target file>\n  -q <query file>\n\nEither a target file has to be given (FASTA format)\nor one target sequence directly.\n\nEither a query file has to be given (FASTA format)\nor one query sequence directly.\n\nThe helix constraint format is \"from,to\", eg. -f 2,7 forces\nstructures to have a helix from position 2 to 7 with respect to the query.\n\n<xi> and <theta> are the position and shape parameters, respectively,\nof the extreme value distribution assumed for p-value calculation.\nIf omitted, they are estimated from the maximal duplex energy of the query.\nIn that case, a data set name has to be given with the -s flag.\n\n", argv[0]);
 
 #ifndef HAVE_LIBG2
     printf("\nPS graphical output not supported.\n\n");
@@ -289,8 +289,8 @@ int main(int argc, char **argv)
   y = (char *) calloc( querylength+2, sizeof(char));     
  
 
-  if (qflag) {
-
+  if (qflag) 
+  {
     FILE *query  = fopen( query_fn,"r");
     if (query==NULL) {
       printf("Error: Could not open query file. Aborting.\n");
@@ -307,72 +307,101 @@ int main(int argc, char **argv)
       n = strlen(query_sq);
 
       if (!dflag) {
-	// estimate evd parameters from maximal duplex energy
-	mde = maximal_duplex_energy(query_sq);
+				// estimate evd parameters from maximal duplex energy
+				mde = maximal_duplex_energy(query_sq);
         xi    =    xi_slope * mde +    xi_intercept;
         theta = theta_slope * mde + theta_intercept;
       }
 
       if (fflag) {
-	helix_start = n - fflag_end;
-	helix_end   = n - fflag_start + 1;
+				//helix_start = n - fflag_end;
+				//helix_end   = n - fflag_start + 1;
+				helix_start = fflag_start - 1;
+				helix_end   = fflag_end;
       }
       else {
-	helix_start = 0;
-	helix_end   = 0;
+				helix_start = 0;
+				helix_end   = 0;
       }
 
       if (n > maxquerylength) {
-	printf("query too long: %s\n", query_ac);
+				printf("query too long: %s\n", query_ac);
       }
-      else {
+      else 
+      {
+      	/* flipping mRNA rather than miRNA */
+      	/*
+				y[0]=' ';
+				for (i=0;i<=n-1;i++) y[i+1] = query_sq[n-i-1];
+				y[n+1]=0;
+				*/
+				
+				strcpy(y, " ");                             
+				strcat(y, query_sq);
+				
+				convert_y();
 
-	y[0]=' ';
-	for (i=0;i<=n-1;i++) y[i+1] = query_sq[n-i-1];
-	y[n+1]=0;
-	convert_y();
-
-	if (tflag) {
-	  FILE *target = fopen(target_fn,"r");
-	  if (target==NULL) {
-	    printf("Error: Could not open target file. Aborting.\n");
-	    exit(2);
-	  }
-
-	  while (!end(target)) {
-
-	    nextAC(target,target_ac);
-	    nextSQ(target,target_sq,maxtargetlength);
-
-	    remove_whitespace(target_sq);
-
-	    m = strlen(target_sq);
-
-	    if (m > maxtargetlength) {
-	      printf("target too long: %s\n", target_ac);
-	    }
-	    else {
-	      strcpy(x, " ");                             
-	      strcat(x, target_sq);
-	      convert_x();
-
-	      mainloop(bflag, hit_number,eflag,energy_cutoff,pflag,pvalue_cutoff,cflag,target_ac,target_sq,query_ac,query_sq,gflag,plot_format,xi,theta);
-	    }
-	    
-	  }
-
-	  fclose(target);
-	}
-	else {
-	  m = strlen(target_sq);
-
-	  strcpy(x, " ");                             
-	  strcat(x, target_sq);
-	  convert_x();
-
-	  mainloop(bflag, hit_number,eflag,energy_cutoff,pflag,pvalue_cutoff,cflag,target_ac,target_sq,query_ac,query_sq,gflag,plot_format,xi,theta);
-	}
-      }
+				if (tflag) 
+				{
+				  FILE *target = fopen(target_fn,"r");
+				  if (target==NULL) 
+				  {
+				    printf("Error: Could not open target file. Aborting.\n");
+				    exit(2);
+				  }
+  			
+				  while (!end(target)) 
+				  {
+				    nextAC(target,target_ac);
+				    nextSQ(target,target_sq,maxtargetlength);
+  			
+				    remove_whitespace(target_sq);
+  			
+				    m = strlen(target_sq);
+  			
+				    if (m > maxtargetlength) 
+				    {
+				      printf("target too long: %s\n", target_ac);
+				    }
+				    else 
+				    {
+				    	/* flipping mRNA rather than miRNA */
+      				/*
+				      strcpy(x, " ");                             
+				      strcat(x, target_sq);
+				      */
+				      x[0]=' ';
+							for (i=0;i<=m-1;i++) x[i+1] = target_sq[m-i-1];
+							x[m+1]=0;
+				      
+				      convert_x();
+  			
+				      mainloop(bflag, hit_number,eflag,energy_cutoff,pflag,pvalue_cutoff,cflag,target_ac,target_sq,query_ac,query_sq,gflag,plot_format,xi,theta);
+				    }
+				    
+				  }
+  			
+				  fclose(target);
+				}
+				else 
+				{
+				  m = strlen(target_sq);
+  				
+  				/* flipping mRNA rather than miRNA */
+      		/*
+				  strcpy(x, " ");                             
+				  strcat(x, target_sq);
+				  */
+				  
+				  x[0]=' ';
+					for (i=0;i<=m-1;i++) x[i+1] = target_sq[m-i-1];
+					x[m+1]=0;
+				  
+				  convert_x();
+  			
+				  mainloop(bflag, hit_number,eflag,energy_cutoff,pflag,pvalue_cutoff,cflag,target_ac,target_sq,query_ac,query_sq,gflag,plot_format,xi,theta);
+				}
+  		}
     }
 
     fclose(query);
@@ -380,51 +409,73 @@ int main(int argc, char **argv)
   else { /* !qflag */
     n = strlen(query_sq);
 
-    if (!dflag) {
+    if (!dflag) 
+    {
       // estimate evd parameters from maximal duplex energy
       mde = maximal_duplex_energy(query_sq);
       xi    =    xi_slope * mde +    xi_intercept;
       theta = theta_slope * mde + theta_intercept;
     }
 
-    if (fflag) {
-      helix_start = n - fflag_end;
-      helix_end   = n - fflag_start + 1;
+    if (fflag) 
+    {
+      //helix_start = n - fflag_end;
+      //helix_end   = n - fflag_start + 1;
+      helix_start = fflag_start - 1;
+			helix_end   = fflag_end;
     }
-    else {
+    else 
+    {
       helix_start = 0;
       helix_end   = 0;
     }
-
-
-    y[0]=' ';
-    for (i=0;i<=n-1;i++) y[i+1] = query_sq[n-i-1];
-    y[n+1]=0;
+		
+		/* flipping mRNA rather than miRNA */
+    /*
+		y[0]=' ';
+		for (i=0;i<=n-1;i++) y[i+1] = query_sq[n-i-1];
+		y[n+1]=0;
+		*/
+				
+		strcpy(y, " ");                             
+		strcat(y, query_sq);
+		
     convert_y();
 
-    if (tflag) { /* !qflag && tflag */
+    if (tflag) 
+    { /* !qflag && tflag */
       FILE *target = fopen(target_fn,"r");
 
-      while (!end(target)) {
+      while (!end(target)) 
+      {
 
-	nextAC(target,target_ac);
-	nextSQ(target,target_sq,maxtargetlength);
-
-	remove_whitespace(target_sq);
-
-	m = strlen(target_sq);
-
-	if (m > maxtargetlength) {
-	  printf("target too long: %s\n", target_ac);
-	}
-	else {
-	  strcpy(x, " ");                             
-	  strcat(x, target_sq);
-	  convert_x();
-
-	  mainloop(bflag,hit_number,eflag,energy_cutoff,pflag,pvalue_cutoff,cflag,target_ac,target_sq,query_ac,query_sq,gflag,plot_format,xi,theta);
-	}
-
+				nextAC(target,target_ac);
+				nextSQ(target,target_sq,maxtargetlength);
+  			
+				remove_whitespace(target_sq);
+  			
+				m = strlen(target_sq);
+  			
+				if (m > maxtargetlength) 
+				{
+				  printf("target too long: %s\n", target_ac);
+				}
+				else 
+				{
+					/* flipping mRNA rather than miRNA */
+      		/*
+				  strcpy(x, " ");                             
+				  strcat(x, target_sq);
+				  */
+				  
+				  x[0]=' ';
+					for (i=0;i<=m-1;i++) x[i+1] = target_sq[m-i-1];
+					x[m+1]=0;
+					
+				  convert_x();
+  			
+				  mainloop(bflag,hit_number,eflag,energy_cutoff,pflag,pvalue_cutoff,cflag,target_ac,target_sq,query_ac,query_sq,gflag,plot_format,xi,theta);
+				}
       }
 
       fclose(target);
@@ -432,16 +483,23 @@ int main(int argc, char **argv)
     else { /* !qflag && !tflag */
       m = strlen(target_sq);
 
-      strcpy(x, " ");                             
-      strcat(x, target_sq);
+			/* flipping mRNA rather than miRNA */
+      /*
+			strcpy(x, " ");                             
+			strcat(x, target_sq);
+			*/
+				  
+			x[0]=' ';
+			for (i=0;i<=m-1;i++) x[i+1] = target_sq[m-i-1];
+			x[m+1]=0;
+			
       convert_x();
 
       mainloop(bflag, hit_number,eflag,energy_cutoff,pflag,pvalue_cutoff,cflag,target_ac,target_sq,query_ac,query_sq,gflag,plot_format,xi,theta);
     }
   }
-
-
-   exit(0);                                    
+  
+  exit(0);                                    
 }
 
 

@@ -33,7 +33,6 @@ double sr_energy(int i, int j){
   return(stack_dg_ar[inpx(i)][inpx(i+1)][inpy(j+1)][inpy(j)]);
 }
 
-
 double dr_energy(int i, int j){
   return(dr_dangle_dg_ar[inpx(i)][inpy(j)][inpy(j-1)]);
 }
@@ -50,6 +49,25 @@ double dri_energy(int i, int j){
   return(dl_dangle_dg_ar[inpy(j+1)][inpy(j)][inpx(i)]);
 }
 
+double r_sr_energy(int i, int j){
+  return(stack_dg_ar[inpx(i+1)][inpx(i)][inpy(j)][inpy(j+1)]);
+}
+
+double r_dr_energy(int i, int j){
+  return(dl_dangle_dg_ar[inpy(j-1)][inpy(j)][inpx(i)]);
+}
+
+double r_dli_energy(int i, int j){
+  return(dl_dangle_dg_ar[inpx(i+1)][inpx(i)][inpy(j)]);
+}
+
+double r_dl_energy(int i, int j){
+  return(dr_dangle_dg_ar[inpy(j)][inpx(i)][inpx(i-1)]);
+}
+
+double r_dri_energy(int i, int j){
+  return(dr_dangle_dg_ar[inpx(i)][inpy(j)][inpy(j+1)]);
+}
  
 double dangles (int i, int j, int i2, int j2, int k, int l, int k2,int l2) {
   return((dli_energy(j,k+1)+dri_energy(j2,k2+1))*wkn);
@@ -100,7 +118,11 @@ double bl_stacking (int t, int b, int i, int j){
   else return(0);
 }
 
-
+double r_bl_stacking (int t, int b, int i, int j){
+  if ((t==0) && (b==1)) return(stack_dg_ar[inpx(i+1)][inpx(i)][inpy(j)][inpy(j+2)]);
+  else if ((t==1) && (b==0)) return(stack_dg_ar[inpx(i+2)][inpx(i)][inpy(j)][inpy(j+1)]);
+  else return(0);
+}
 
 
 double int_special(int i, int j, int t, int b)
@@ -111,12 +133,32 @@ double int_special(int i, int j, int t, int b)
   else if ((t==2) && (b==2)) return(int22_ar[inpx(i)][inpy(j)][inpx(i+1)][inpx(i+2)][inpy(j+1)][inpy(j+2)][inpx(i+3)][inpy(j+3)]);
 }
 
+double r_int_special(int i, int j, int t, int b)
+{
+	/*
+  if ((t==1) && (b==1)) return(int11_ar[inpy(j)][inpx(i)][inpy(j+1)][inpx(i+1)][inpy(j+2)][inpx(i+2)]);
+  else if ((t==1) && (b==2)) return(int21_ar[inpx(i+2)][inpy(j+3)][inpx(i+1)][inpy(j+2)][inpy(j+1)][inpx(i)][inpy(j)]);
+  else if ((t==2) && (b==1)) return(int21_ar[inpy(j)][inpx(i)][inpy(j+1)][inpx(i+1)][inpx(i+2)][inpy(j+2)][inpx(i+3)]);
+  else if ((t==2) && (b==2)) return(int22_ar[inpx(i+3)][inpy(j+3)][inpx(i+2)][inpx(i+1)][inpy(j+2)][inpy(i+1)][inpx(i)][inpy(j)]);
+  */
+  
+  
+  if ((t==1) && (b==1)) return(int11_ar[inpx(i+2)][inpy(j+2)][inpx(i+1)][inpy(j+1)][inpx(i)][inpy(j)]);
+  else if ((t==1) && (b==2)) return(int21_ar[inpx(i+2)][inpy(j+3)][inpx(i+1)][inpy(j+2)][inpy(j+1)][inpx(i)][inpy(j)]);
+  else if ((t==2) && (b==1)) return(int21_ar[inpy(j)][inpx(i)][inpy(j+1)][inpx(i+1)][inpx(i+2)][inpy(j+2)][inpx(i+3)]);
+  else if ((t==2) && (b==2)) return(int22_ar[inpx(i+3)][inpy(j+3)][inpx(i+2)][inpx(i+1)][inpy(j+2)][inpy(j+1)][inpx(i)][inpy(j)]);
+  
+}
 
 double do_il_special(int i, int j, int k, int l, int u, int v, double e)
 {
   return(e+int_special(i,j,l-k,v-u));
 }
 
+double r_do_il_special(int i, int j, int k, int l, int u, int v, double e)
+{
+  return(e+r_int_special(i,j,l-k,v-u));
+}
 
 /* double do_il(int i, int j, int k, int l, int u, int v, double e){ */
 /*   return(e+ il_stack_close (l+1,v+1) + il_ent (l-k+v-u) + il_asym (l-k,v-u)); */
