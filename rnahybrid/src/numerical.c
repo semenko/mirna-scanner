@@ -9,7 +9,8 @@
 #include "globals.h"
 #include "minmax.h"
 #include "math.h"
-
+#include <stdio.h>
+#include <stdlib.h>
 
 int compare_floats (const void *a, const void *b)
 {

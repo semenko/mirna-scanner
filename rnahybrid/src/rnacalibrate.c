@@ -17,7 +17,7 @@
 #include <time.h>
 #include <math.h>
 #include <stdlib.h>
-
+#include <string.h>
 
 static char const rcsid[] = "$Id: rnacalibrate.c,v 1.11 2004/11/16 15:42:33 marc Exp $";
 
