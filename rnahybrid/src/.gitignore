@@ -1,3 +1,16 @@
 .deps
 Makefile
-
+RNAcalibrate
+RNAeffective
+RNAhybrid
+energy.o
+fasta.o
+hybrid_core.o
+input.o
+mt19937-1.o
+numerical.o
+plot.o
+random.o
+rnacalibrate.o
+rnaeffective.o
+rnahybrid.o

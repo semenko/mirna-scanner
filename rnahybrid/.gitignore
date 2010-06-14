@@ -3,4 +3,6 @@ config.status
 config.h
 Makefile
 stamp-h1
+autom4te.cache/
+config.h.in~
 
