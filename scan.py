@@ -17,6 +17,7 @@ TBA_PATH = 'tba'
 
 import MySQLdb
 import os
+import cPickle as pickle
 import subprocess
 import sys
 import time
@@ -27,7 +28,7 @@ def rnahybrid():
     """ Execute RNAhybrid. """
 
     # TODO: Allow user to change flags to RNAhybrid
-    str = "-c -s 3utr_human -t target -q query"
+    # str = "-c -s 3utr_human -t target -q query"
 
     conn = MySQLdb.connect(host = "localhost",
                            user = "root",
@@ -35,26 +36,62 @@ def rnahybrid():
                            db = "nagarajan")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT UTR_SEQ FROM T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES REGEXP \"^[0-9]*\_[0-9]*$\" LIMIT 1")
-    # output looks like:
-    # command_line:1957:command_line:9:-21.6:0.597445:966:A       G U: ACCCCGG G : UGGGGCC C :        G
+    cursor.execute("SELECT UTR_SEQ, ENTREZ_GENEID FROM T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 AND ORGANISM = 'Hs'")
+
+    mirna_seq = 'TGGGGCCGC'
+    
+    # Dictionary Storing RNAhybrid output
+    # Key = (entrez_geneid, mirna_sequence)
+    # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
+    results = {}
     
     while True:
         val = cursor.fetchone()
         if val == None:
             break
-        process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-p', '0.8', '-s', '3utr_human', val[0], 'TGGGGCCGC'],
+        process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-p', '0.8', '-s', '3utr_human', val[0], mirna_seq],
                                    shell=False,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         stdoutdata, stderrdata = process.communicate()
-        print stdoutdata
+        for line in stdoutdata.split('\n')[:-1]:
+            # ['command_line', '1957', 'command_line', '9', '-21.6', '0.597445', '966', 'A       G U', ' ACCCCGG G ', ' UGGGGCC C ', '        G  ']
+            # we do this annoying unpack so the ints aren't stored as string
+            # may not be necessary, as inputs may become strings in about 10 seconds ...
+            mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
+            results[(int(val[1]), mirna_seq)] = (float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime)
 
+        if process.returncode != 0:
+            raise Exception('An error occurred in executing RNAhybrid.')
 
-    if process.returncode != 0:
-        raise Exception('An error occurred in executing RNAhybrid.')
+    print (len(results))
+
+def save_cache(module, serial, item):
+    """ Store something in a pickle cache. """
     
-    pass
+    path = 'cache/' + module + '/'
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    output = open(path + serial + '.cache', 'wb', -1)
+    pickle.dump(item, output)
+    output.close()
+    return True
+
+def load_cache(module, serial):
+    """ Try to retrieve something from a pickle cache. """
+    try:
+        serial = pickle.load(open('cache/' + module + '/' + serial + '.cache', 'rb'))
+        print serial
+    except IOError:
+        print "No cached data exists for these settings."
+        return False
+    except pickle.UnpicklingError:
+        print "The cache was corruped. Regenerating."
+        return False
+#    except:
+#        print "Unable to retrieve from cache."
+#        return False
 
 def tba():
     """ Execute TBA. """
@@ -86,8 +123,9 @@ def main():
     (options, args) = parser.parse_args()
     if len(args) == 0:
         parser.error("Try -h for help.")
-
-    rnahybrid()
+    load_cache('mod', 'serial')
+    save_cache('mod','serial','abc123')
+#    rnahybrid()
 
             
 if __name__ == "__main__":
