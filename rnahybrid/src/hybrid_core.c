@@ -1402,7 +1402,7 @@ void calc_unpaired_left_bot(int i1, int j1, int i2, int j2)
 
 void calc_closed(int i1, int j1, int i2, int j2)
 {
-    double v1, v3, v5, v7, v7f, v7g, v8, v9, v10, v11, v12;
+    double v1, v3, v5, v7, v8, v9, v10, v11, v12;
 
     /* ---------------------------------- start of --------------------------------- */
     /* - v1 = sr <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ p closed - */
@@ -1479,7 +1479,7 @@ void calc_closed(int i1, int j1, int i2, int j2)
 
     if (((j1-i1) >= 3) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1]))
     {
-        double v6, v7b, v7c, v7d, v7e;
+        double v6, v7b, v7g;
         int k3, k4;
         v7 = 65000;
         /* special internal loops: */
@@ -1506,6 +1506,7 @@ void calc_closed(int i1, int j1, int i2, int j2)
 
         if ((x[k3]!=X))
         {                        /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
+          double v7c, v7d, v7e, v7f;
 
             /* normal internal loops: */
             for (k3=i1+2; k3<=min(i1+3, j1-1); k3++)
