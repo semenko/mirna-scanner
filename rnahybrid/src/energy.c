@@ -8,6 +8,11 @@
 
 #include "energy.h"
 
+double int11_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
+double int21_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
+double int22_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
+
+
 void init_constants()
 {
     e = 2.718281828459;
@@ -681,16 +686,6 @@ void init_dl_dangle_dg_ar()
 
 void init_int11_ar()
 {
-    int k1,k2,k3,k4,k5,k6;
-
-    for (k1=0;k1<ALPHASIZE;k1++)
-        for (k2=0;k2<ALPHASIZE;k2++)
-            for (k3=0;k3<ALPHASIZE;k3++)
-                for (k4=0;k4<ALPHASIZE;k4++)
-                    for (k5=0;k5<ALPHASIZE;k5++)
-                        for (k6=0;k6<ALPHASIZE;k6++)
-                            int11_ar[k1][k2][k3][k4][k5][k6]=0.0;
-
     int11_ar[A][U][A][A][A][U] =  1.700;
     int11_ar[A][U][A][C][A][U] =  1.700;
     int11_ar[A][U][A][G][A][U] =  1.700;
@@ -1272,17 +1267,6 @@ void init_int11_ar()
 
 void init_int21_ar()
 {
-    int k1,k2,k3,k4,k5,k6,k7;
-
-    for (k1=0;k1<ALPHASIZE;k1++)
-        for (k2=0;k2<ALPHASIZE;k2++)
-            for (k3=0;k3<ALPHASIZE;k3++)
-                for (k4=0;k4<ALPHASIZE;k4++)
-                    for (k5=0;k5<ALPHASIZE;k5++)
-                        for (k6=0;k6<ALPHASIZE;k6++)
-                            for (k7=0;k7<ALPHASIZE;k7++)
-                                int21_ar[k1][k2][k3][k4][k5][k6][k7]=0.0;
-
     int21_ar[A][U][A][A][A][A][U] =  3.900;
     int21_ar[A][U][A][A][C][A][U] =  3.700;
     int21_ar[A][U][A][A][G][A][U] =  3.100;
@@ -3592,17 +3576,6 @@ void init_int21_ar()
 
 void init_int22_ar()
 {
-    int k1,k2,k3,k4,k5,k6,k7,k8;
-
-    for (k1=0;k1<ALPHASIZE;k1++)
-        for (k2=0;k2<ALPHASIZE;k2++)
-            for (k3=0;k3<ALPHASIZE;k3++)
-                for (k4=0;k4<ALPHASIZE;k4++)
-                    for (k5=0;k5<ALPHASIZE;k5++)
-                        for (k6=0;k6<ALPHASIZE;k6++)
-                            for (k7=0;k7<ALPHASIZE;k7++)
-                                for (k8=0;k8<ALPHASIZE;k8++)
-                                    int22_ar[k1][k2][k3][k4][k5][k6][k7][k8]=0.0;
 
     int22_ar[A][U][A][A][A][A][A][U] =  2.800;
     int22_ar[A][U][A][A][A][C][A][U] =  2.600;
