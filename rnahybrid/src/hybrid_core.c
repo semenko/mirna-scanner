@@ -1022,8 +1022,6 @@ double calc_hybrid(int i1, int j1, int i2, int j2);
 double calc_hybrid(int i1, int j1, int i2, int j2)
 {
    double v1, v2, v3, v4, v5;
-   
-   int k;
 
    /* ---------------------------------- start of --------------------------------- */
    /* --------------------- v1 = nil <<< tt(uregion, uregion) --------------------- */
@@ -1049,7 +1047,7 @@ double calc_hybrid(int i1, int j1, int i2, int j2)
    
    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
      v2 = 65000;
-     
+     int k;
      for (k=i1; k<j1; k++) {
        if (tbl_unpaired_left_bot[k][i2] < v2) {
 	 				v2 = tbl_unpaired_left_bot[k][i2];
@@ -1318,11 +1316,7 @@ void calc_unpaired_left_bot(int i1, int j1, int i2, int j2)
 
 void calc_closed(int i1, int j1, int i2, int j2)
 {
-   double v1, v2, v3, v4, v5, v6, v7, v7b, v7c, v7d, v7e, v7f, v7g, v8, v9, v10, v11, v12;
-   int k;
-   int k2;
-   int k3;
-   int k4;
+   double v1, v3, v5, v7, v7f, v7g, v8, v9, v10, v11, v12;
 
    /* ---------------------------------- start of --------------------------------- */
    /* - v1 = sr <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ p closed - */
@@ -1345,6 +1339,8 @@ void calc_closed(int i1, int j1, int i2, int j2)
    /* ---------------------------------- start of --------------------------------- */
    /*  v3 = bt <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, empty) `with` (sizeTT 1 15 0 0)) ~~~ p closed  */
    if (((j1-i1) >= 3) && ((j2-i2) >= 2) && compl(x[i1+1], y[i2+1]) && ((i2 < helix_start) || (i2 >= helix_end-1))) {
+     double v2;
+     int k;
       v3 = 65000;
       for (k=i1+2; k<=min(i1+bloop_upper_limit+1, j1-1); k++) {
 	if (x[k]==X)
@@ -1364,6 +1360,8 @@ void calc_closed(int i1, int j1, int i2, int j2)
    /* ---------------------------------- start of --------------------------------- */
    /*  v5 = bb <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(empty, region) `with` (sizeTT 0 0 1 15)) ~~~ p closed  */
    if (((j1-i1) >= 2) && ((j2-i2) >= 3) & compl(x[i1+1], y[i2+1])) {
+     double v4;
+     int k2;
       v5 = 65000;
       for (k2=i2+2; k2<=min(i2+bloop_upper_limit+1, j2-1); k2++) {
         if ((k2 > helix_start) && (k2 <= helix_end))
@@ -1385,6 +1383,8 @@ void calc_closed(int i1, int j1, int i2, int j2)
    
    if (((j1-i1) >= 3) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1])) 
    {
+     double v6, v7b, v7c, v7d, v7e;
+     int k3, k4;
      v7 = 65000;
      /* special internal loops: */
      for (k3=i1+2; k3<=min(i1+min(3,iloop_upper_limit+1), j1-1); k3++) 
@@ -1931,10 +1931,6 @@ struct str1 back_unpaired_left_bot(int i1, int j1, int i2, int j2)
 struct str1 back_closed(int i1, int j1, int i2, int j2)
 {
    struct str1 v1, v2, v3, v4, v5, v6, v7, v7b, v7c, v7d, v7e, v7f, v7g, v8, v9, v10, v11, v12;
-   int k;
-   int k2;
-   int k3;
-   int k4;
 
    /* ---------------------------------- start of --------------------------------- */
    /* - v1 = sr <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ p closed - */
@@ -1962,6 +1958,7 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
    if (((j1-i1) >= 3) && ((j2-i2) >= 2) && compl(x[i1+1], y[i2+1]) && ((i2 < helix_start) || (i2 >= helix_end-1))) {
       v3.alg_mfe = 65000;
       v3.alg_enum = NULL;
+      int k;
       for (k=i1+2; k<=min(i1+bloop_upper_limit+1, j1-1); k++) {
 	if (x[k]==X)
 	  break;
@@ -1988,6 +1985,7 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
    if (((j1-i1) >= 2) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1])) {
       v5.alg_mfe = 65000;
       v5.alg_enum = NULL;
+      int k2;
       for (k2=i2+2; k2<=min(i2+bloop_upper_limit+1, j2-1); k2++) {
         if ((k2 > helix_start) && (k2 <= helix_end))
 	  break;
@@ -2017,6 +2015,7 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
      v7.alg_mfe = 65000;
      v7.alg_enum = NULL;
      /* special internal loops: */
+     int k3, k4;
      for (k3=i1+2; k3<=min(i1+min(3,iloop_upper_limit+1), j1-1); k3++) {
        if (x[k3]==X)
 	 break;
