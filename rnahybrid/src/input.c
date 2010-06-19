@@ -9,48 +9,52 @@
 #include "input.h"
 #include <string.h>
 
-
-void convert_x(){
-  int i;
-  char c;
-  for (i=0; i<=m; i++) {
-    c=x[i];
-    if      (c=='a' || c=='A') x[i]=A;
-    else if (c=='c' || c=='C') x[i]=C;
-    else if (c=='g' || c=='G') x[i]=G;
-    else if (c=='u' || c=='U') x[i]=U;
-    else if (c=='t' || c=='T') x[i]=U;
-    else                       x[i]=N;
-  }
+void convert_x()
+{
+    int i;
+    char c;
+    for (i=0; i<=m; i++)
+    {
+        c=x[i];
+        if      (c=='a' || c=='A') x[i]=A;
+        else if (c=='c' || c=='C') x[i]=C;
+        else if (c=='g' || c=='G') x[i]=G;
+        else if (c=='u' || c=='U') x[i]=U;
+        else if (c=='t' || c=='T') x[i]=U;
+        else                       x[i]=N;
+    }
 }
 
-void convert_y(){
-  int i;
-  char c;
-  for (i=0; i<=n; i++) {
-    c=y[i];
-    if      (c=='a' || c=='A') y[i]=A;
-    else if (c=='c' || c=='C') y[i]=C;
-    else if (c=='g' || c=='G') y[i]=G;
-    else if (c=='u' || c=='U') y[i]=U;
-    else if (c=='t' || c=='T') y[i]=U;
-    else                       y[i]=N;
-  }
+
+void convert_y()
+{
+    int i;
+    char c;
+    for (i=0; i<=n; i++)
+    {
+        c=y[i];
+        if      (c=='a' || c=='A') y[i]=A;
+        else if (c=='c' || c=='C') y[i]=C;
+        else if (c=='g' || c=='G') y[i]=G;
+        else if (c=='u' || c=='U') y[i]=U;
+        else if (c=='t' || c=='T') y[i]=U;
+        else                       y[i]=N;
+    }
 }
 
 
 void remove_whitespace(char *sequence)
 {
-  int len = strlen(sequence);
-  int i;
+    int len = strlen(sequence);
+    int i;
 
-  for (i=0; i<len; i++)
-    if (sequence[i]<33) {
-      memmove(sequence+i,sequence+i+1,len-i-1);
-      len--;
-      i--;
+    for (i=0; i<len; i++)
+        if (sequence[i]<33)
+    {
+        memmove(sequence+i,sequence+i+1,len-i-1);
+        len--;
+        i--;
     }
 
-  sequence[len] = 0;
+    sequence[len] = 0;
 }
-
