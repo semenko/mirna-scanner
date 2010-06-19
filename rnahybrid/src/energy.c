@@ -8,6 +8,14 @@
 
 #include "energy.h"
 
+double stack_dg_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0};
+double tstackh_dg_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0};
+double tstacki_dg_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0};
+double hl_tetra_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
+
+double dr_dangle_dg_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE+1] = {0};
+double dl_dangle_dg_ar[ALPHASIZE+1][ALPHASIZE][ALPHASIZE] = {0};
+
 double int11_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
 double int21_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
 double int22_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
@@ -205,17 +213,16 @@ double r_do_il_special(int i, int j, int k, int l, int u, int v, double e)
 
 void init_hl_ent_ar()
 {
-
-    int i;
-    for(i=0;i<=2;i++) hl_ent_ar[i] = 0;
-
-    hl_ent_ar[ 3] = 5.7000;
-    hl_ent_ar[ 4] = 5.6000;
-    hl_ent_ar[ 5] = 5.6000;
-    hl_ent_ar[ 6] = 5.4000;
-    hl_ent_ar[ 7] = 5.9000;
-    hl_ent_ar[ 8] = 5.6000;
-    hl_ent_ar[ 9] = 6.4000;
+    hl_ent_ar[0] = 0;
+    hl_ent_ar[1] = 0;
+    hl_ent_ar[2] = 0;
+    hl_ent_ar[3] = 5.7000;
+    hl_ent_ar[4] = 5.6000;
+    hl_ent_ar[5] = 5.6000;
+    hl_ent_ar[6] = 5.4000;
+    hl_ent_ar[7] = 5.9000;
+    hl_ent_ar[8] = 5.6000;
+    hl_ent_ar[9] = 6.4000;
     hl_ent_ar[10] = 6.5000;
     hl_ent_ar[11] = 6.6000;
     hl_ent_ar[12] = 6.7000;
@@ -242,10 +249,6 @@ void init_hl_ent_ar()
 
 void init_stack_dg_ar()
 {
-
-    int i,j,k,l;
-    for(i=0;i<ALPHASIZE;i++) for(j=0;j<ALPHASIZE;j++) for(k=0;k<ALPHASIZE;k++) for(l=0;l<ALPHASIZE;l++) stack_dg_ar[i][j][k][l] = 0;
-
     stack_dg_ar[A][A][U][U] = -0.900;
     stack_dg_ar[A][C][G][U] = -2.200;
     stack_dg_ar[A][G][C][U] = -2.100;
@@ -287,10 +290,6 @@ void init_stack_dg_ar()
 
 void init_tstackh_dg_ar()
 {
-
-    int i,j,k,l;
-    for(i=0;i<ALPHASIZE;i++) for(j=0;j<ALPHASIZE;j++) for(k=0;k<ALPHASIZE;k++) for(l=0;l<ALPHASIZE;l++) tstackh_dg_ar[i][j][k][l] = 0;
-
     tstackh_dg_ar[A][A][A][U] = -0.300;
     tstackh_dg_ar[A][A][C][U] = -0.500;
     tstackh_dg_ar[A][A][G][U] = -0.300;
@@ -393,16 +392,6 @@ void init_tstackh_dg_ar()
 
 void init_hl_tetra_ar()
 {
-    int k1,k2,k3,k4,k5,k6;
-
-    for (k1=0;k1<ALPHASIZE;k1++)
-        for (k2=0;k2<ALPHASIZE;k2++)
-            for (k3=0;k3<ALPHASIZE;k3++)
-                for (k4=0;k4<ALPHASIZE;k4++)
-                    for (k5=0;k5<ALPHASIZE;k5++)
-                        for (k6=0;k6<ALPHASIZE;k6++)
-                            hl_tetra_ar[k1][k2][k3][k4][k5][k6]=0.0;
-
     hl_tetra_ar[G][G][G][G][A][C] = -3.000;
     hl_tetra_ar[G][G][U][G][A][C] = -3.000;
     hl_tetra_ar[C][G][A][A][A][G] = -3.000;
@@ -515,10 +504,6 @@ void init_il_ent_ar()
 
 void init_tstacki_dg_ar()
 {
-
-    int i,j,k,l;
-    for(i=0;i<ALPHASIZE;i++) for(j=0;j<ALPHASIZE;j++) for(k=0;k<ALPHASIZE;k++) for(l=0;l<ALPHASIZE;l++) tstacki_dg_ar[i][j][k][l] = 0;
-
     tstacki_dg_ar[A][A][A][U] =  0.700;
     tstacki_dg_ar[A][A][C][U] =  0.700;
     tstacki_dg_ar[A][A][G][U] = -0.400;
@@ -620,9 +605,6 @@ void init_tstacki_dg_ar()
 
 void init_dr_dangle_dg_ar()
 {
-    int i,j,k;
-    for(i=0;i<ALPHASIZE;i++) for(j=0;j<ALPHASIZE;j++) for(k=0;k<=ALPHASIZE;k++) dr_dangle_dg_ar[i][j][k] = 0;
-
     dr_dangle_dg_ar[A][U][A] = -0.700;
     dr_dangle_dg_ar[A][U][C] = -0.100;
     dr_dangle_dg_ar[A][U][G] = -0.700;
@@ -653,9 +635,6 @@ void init_dr_dangle_dg_ar()
 
 void init_dl_dangle_dg_ar()
 {
-    int i,j,k;
-    for(i=0;i<=ALPHASIZE;i++) for(j=0;j<ALPHASIZE;j++) for(k=0;k<ALPHASIZE;k++) dl_dangle_dg_ar[i][j][k] = 0;
-
     dl_dangle_dg_ar[A][A][U] = -0.300;
     dl_dangle_dg_ar[C][A][U] = -0.300;
     dl_dangle_dg_ar[G][A][U] = -0.400;
