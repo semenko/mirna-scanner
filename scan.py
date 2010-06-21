@@ -38,7 +38,7 @@ class RNAHybridError(Exception):
 
 ### ---------------------------------------------
 
-def rnahybrid(use_cache, pval_cutoff, organism_flag, entrez_geneid, utr_seq, mirna_target):
+def rnahybrid(use_cache, pval_cutoff, organism_flag, entrez_geneid, utr_seq, mirna_query):
     """ Execute RNAhybrid.
     
     Returns:
@@ -47,20 +47,26 @@ def rnahybrid(use_cache, pval_cutoff, organism_flag, entrez_geneid, utr_seq, mir
 
     # We use pickle to cache our results dict, and store it in a directory.
     # Hierarchy:
-    #  mirna_target/entrez_geneid/organism_flag/organism_flag.pval_cutoff.cksum(utr_seq).out
+    #  mirna_query/entrez_geneid/organism_flag/organism_flag.pval_cutoff.cksum(utr_seq).out
 
-    cacheKey = mirna_target + '/' + str(entrez_geneid) + '/' + organism_flag + '/' + str(pval_cutoff) + '.' + str(zlib.adler32(utr_seq))
+    cacheDir = mirna_query + '/' + str(entrez_geneid) + '/' + organism_flag + '/'
+    cacheKey = str(pval_cutoff) + '-' + str(zlib.adler32(utr_seq))
 
-    print "using Cachekey: %s" % cacheKey_bind, mirna_5prime = line.split(':')[4:]
-        results[(int(val[1]), mirna_seq)] = (float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime)
-
+    if use_cache:
+        results = load_cache('rnahybrid', cacheDir, cacheKey)
+        if results:
+            print "Got it!"
+            # TODO: Add checks here for hash collisions.
+            return results
+        else:
+            print "no results in cache :("
 
     # Dictionary Storing RNAhybrid output
-    # Key = (entrez_geneid, mirna_sequence)
+    # Key = (entrez_geneid, organism_flag, mirna_sequence)
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
     results = {}
 
-    process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-p', '0.8', '-s', '3utr_human', val[0], mirna_seq],
+    process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-p', pval_cutoff, '-s', '3utr_human', utr_seq, mirna_query],
                                shell=False,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
@@ -70,35 +76,36 @@ def rnahybrid(use_cache, pval_cutoff, organism_flag, entrez_geneid, utr_seq, mir
         # we do this annoying unpack so the ints aren't stored as string
         # may not be necessary, as inputs may become strings in about 10 seconds ...
         mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
-        results[(int(val[1]), mirna_seq)] = (float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime)
+        results[(int(entrez_geneid), organism_flag, mirna_seq)] = (float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime)
 
     if process.returncode != 0:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
 
-    save_cache('rnahybrid', cacheKey, results)
+    save_cache('rnahybrid', cacheDir, cacheKey, results)
     return results
 
 
 ### ---------------------------------------------
 ### Pickling (caching) code.
 ### ---------------------------------------------
-def save_cache(module, serial, item):
+def save_cache(module, cachedir, cachekey, item):
     """ Store something in a pickle cache. """
-    # cache/RNAhybrid/ACTGACATTTTGGGTCACA/79570/Hs/.0.973218742.cache
-    path = CACHEPATH + module + '/' + serial
+    
+    path = CACHEPATH + module + '/' + cachedir
+    # Make sure all the directories exist.
     if not os.path.exists(path):
         os.makedirs(path)
 
-    output = open(path + serial + '.cache', 'wb', -1)
+    output = open(path + cachekey + '.cache', 'wb', -1)
     pickle.dump(item, output)
     output.close()
     return True
 
 
-def load_cache(module, serial):
+def load_cache(module, cachedir, cachekey):
     """ Try to retrieve something from a pickle cache. """
     try:
-        serial = pickle.load(open(CACHEPATH + module + '/' + serial + '.cache', 'rb'))
+        serial = pickle.load(open(CACHEPATH + module + '/' + cachedir + cachekey + '.cache', 'rb'))
         print serial
     except IOError:
         print "No cached data exists for these settings."
