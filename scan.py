@@ -38,7 +38,7 @@ class RNAHybridError(Exception):
 
 ### ---------------------------------------------
 
-def rnahybrid(use_cache, pval_cutoff, organism_flag, entrez_geneid, utr_seq, mirna_query):
+def rnahybrid(nocache, organism_flag, entrez_geneid, utr_seq, mirna_query):
     """ Execute RNAhybrid.
     
     Returns:
@@ -50,9 +50,9 @@ def rnahybrid(use_cache, pval_cutoff, organism_flag, entrez_geneid, utr_seq, mir
     #  mirna_query/entrez_geneid/organism_flag/organism_flag.pval_cutoff.cksum(utr_seq).out
 
     cacheDir = mirna_query + '/' + str(entrez_geneid) + '/' + organism_flag + '/'
-    cacheKey = str(pval_cutoff) + '-' + str(zlib.adler32(utr_seq))
+    cacheKey = str(zlib.adler32(utr_seq))
 
-    if use_cache:
+    if not nocache:
         results = load_cache('rnahybrid', cacheDir, cacheKey)
         if results:
             print "Got it!"
@@ -66,7 +66,8 @@ def rnahybrid(use_cache, pval_cutoff, organism_flag, entrez_geneid, utr_seq, mir
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
     results = {}
 
-    process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-p', pval_cutoff, '-s', '3utr_human', utr_seq, mirna_query],
+    # There's no reason to do a p-value cutoff here. We'd just be throwing away data that we might use later.
+    process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-s', '3utr_human', utr_seq, mirna_query],
                                shell=False,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
@@ -76,10 +77,12 @@ def rnahybrid(use_cache, pval_cutoff, organism_flag, entrez_geneid, utr_seq, mir
         # we do this annoying unpack so the ints aren't stored as string
         # may not be necessary, as inputs may become strings in about 10 seconds ...
         mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
-        results[(int(entrez_geneid), organism_flag, mirna_seq)] = (float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime)
+        results[(int(entrez_geneid), organism_flag, mirna_query)] = (float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime)
 
     if process.returncode != 0:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
+
+    print len(results)
 
     save_cache('rnahybrid', cacheDir, cacheKey, results)
     return results
@@ -105,8 +108,8 @@ def save_cache(module, cachedir, cachekey, item):
 def load_cache(module, cachedir, cachekey):
     """ Try to retrieve something from a pickle cache. """
     try:
-        serial = pickle.load(open(CACHEPATH + module + '/' + cachedir + cachekey + '.cache', 'rb'))
-        print serial
+        cachevals = pickle.load(open(CACHEPATH + module + '/' + cachedir + cachekey + '.cache', 'rb'))
+        return cachevals
     except IOError:
         print "No cached data exists for these settings."
         return False
@@ -139,17 +142,14 @@ def main():
                       "invocations of TBA. This is basically a spawned process limit. [Default: 2]",
                       default=2, action="store", type="int", dest="threads")
 
-    parser.add_option("-c", "--usecache", help="Try to use local cache to retreive prior RNAhybrid"
-                     "results. [Default: True]",
-                     default=True, action="store_false", dest="useCache")
+    parser.add_option("-n", "--nocache", help="Don't use local cache to retreive prior RNAhybrid"
+                     "results. [Default: False]",
+                     default=False, action="store_true", dest="noCache")
 
     # RNAhybrid Options
-    group = OptionGroup(parser, "RNAhybrid Settings (optional)")
+#    group = OptionGroup(parser, "RNAhybrid Settings (optional)")
 
-    group.add_option("-p", "--pvalue", help="p-value cutoff for results",
-                     default=0.0, action="store", type="float", dest="pValue")
-
-    parser.add_option_group(group)
+ #   parser.add_option_group(group)
 
     
     (options, args) = parser.parse_args()
@@ -193,13 +193,13 @@ def main():
         cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
                        "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
                        "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
-                       "AND ORGANISM = '" + organism_flag +"' LIMIT 100")
+                       "AND ORGANISM = '" + organism_flag +"' LIMIT 10")
         
         while True:
             val = cursor.fetchone()
             if val == None:
                 break
-            results = rnahybrid(options.useCache, options.pValue, organism_flag, val[0], val[1], mirna_target)
+            results = rnahybrid(options.noCache, organism_flag, val[0], val[1], mirna_target)
             print len(results)
 
             
