@@ -42,12 +42,8 @@ def rnahybrid(nocache, organism_flag, entrez_geneid, utr_seq, mirna_query):
     """ Execute RNAhybrid.
     
     Returns:
-      Results dictionary either from cache or a de-novo run of RNAhybrid.
+      Results set either from cache or a de-novo run of RNAhybrid.
     """
-
-    # We use pickle to cache our results dict, and store it in a directory.
-    # Hierarchy:
-    #  mirna_query/entrez_geneid/organism_flag/organism_flag.pval_cutoff.cksum(utr_seq).out
 
     cacheDir = mirna_query + '/' + str(entrez_geneid) + '/' + organism_flag + '/'
     cacheKey = str(zlib.adler32(utr_seq))
@@ -55,16 +51,15 @@ def rnahybrid(nocache, organism_flag, entrez_geneid, utr_seq, mirna_query):
     if not nocache:
         results = load_cache('rnahybrid', cacheDir, cacheKey)
         if results:
-            print "Got it!"
+            print "\tRetreived from cache: %s (entrez id)" % entrez_geneid
             # TODO: Add checks here for hash collisions.
             return results
-        else:
-            print "no results in cache :("
+    print "\tDe-novo run on: %s (entrez id)" % entrez_geneid
 
-    # Dictionary Storing RNAhybrid output
-    # Key = (entrez_geneid, organism_flag, mirna_sequence)
+
+    # Set storing RNAhybrid output
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-    results = {}
+    results = set()
 
     # There's no reason to do a p-value cutoff here. We'd just be throwing away data that we might use later.
     process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-s', '3utr_human', utr_seq, mirna_query],
@@ -77,12 +72,10 @@ def rnahybrid(nocache, organism_flag, entrez_geneid, utr_seq, mirna_query):
         # we do this annoying unpack so the ints aren't stored as string
         # may not be necessary, as inputs may become strings in about 10 seconds ...
         mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
-        results[(int(entrez_geneid), organism_flag, mirna_query)] = (float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime)
+        results.add((float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime))
 
     if process.returncode != 0:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
-
-    print len(results)
 
     save_cache('rnahybrid', cacheDir, cacheKey, results)
     return results
@@ -181,7 +174,12 @@ def main():
 
     # This is a dict mapping short organisms ('Hs','Cf') to long titles
     # in the MIRBASE_MIR_ORTHOLOG database.
-    organisms = {}
+    organisms = {'Hs': '',
+                 'Pt': '',
+                 'Cf': '',
+                 'Rn': '',
+                 'Gg': '',
+                 'Mm': ''}
 
     # Should we look up orthologs to QUERY via MIRBASE_MIR_ORTHOLOG and scan them as well?
     if options.useOrthologs:
@@ -189,18 +187,24 @@ def main():
     else:
         # Don't look up orthlogs. Just use provided species and sequence.
         organism_flag = 'Hs'
-        mirna_target = 'ACTGACATTTTGGGTCACA' # Fake target for test purposes.
+        mirna_query = 'ACTGACATTTTGGGTCACA' # Fake target for test purposes.
         cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
                        "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
                        "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
                        "AND ORGANISM = '" + organism_flag +"' LIMIT 10")
+
+        # Build a Dictionary Storing RNAhybrid output
+        # Key = (entrez_geneid, organism_flag, mirna_query)
+        # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
+        results = {}     
         
         while True:
             val = cursor.fetchone()
             if val == None:
                 break
-            results = rnahybrid(options.noCache, organism_flag, val[0], val[1], mirna_target)
-            print len(results)
+            results[(val[0], organism_flag, mirna_query)] = rnahybrid(options.noCache, organism_flag, val[0], val[1], mirna_query)
+
+    print "All done!\nResults is: %s" % len(results)
 
             
 if __name__ == "__main__":
