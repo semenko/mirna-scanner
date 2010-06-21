@@ -123,9 +123,9 @@ def main():
     parser = OptionParser(usage)
 
     # General settings
-    parser.add_option("-o", "--includeOrthologs", help="Look up orthologs via MIRBASE_MIR_ORTHOLOG "
-                      "and compute their bindings to QUERY as well. [Default: True]",
-                      default=False, action="store_false", dest="useOrthologs")
+    parser.add_option("-s", "--oneSpecies", help="Specify a single species to query on, such as Hs "
+                      "or Pt. [Default: Use all species.]"
+                      default=False, action="store", dest="oneSpecies")
 
     parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
                       "miRNA in the MIRBASE_MIR_ORTHOLOG database.",
@@ -140,9 +140,8 @@ def main():
                      default=False, action="store_true", dest="noCache")
 
     # RNAhybrid Options
-#    group = OptionGroup(parser, "RNAhybrid Settings (optional)")
-
- #   parser.add_option_group(group)
+    # group = OptionGroup(parser, "RNAhybrid Settings (optional)")
+    # parser.add_option_group(group)
 
     
     (options, args) = parser.parse_args()
@@ -153,12 +152,6 @@ def main():
     if (options.mirnaQuery):
         assert(re.match("^[AUTGCautgc]*$", args[-1]))
 
-    # Instantiate SQL connection
-    conn = MySQLdb.connect(host = "localhost",
-                           user = "root",
-                           passwd = "KleinersLaws",
-                           db = "nagarajan")
-    cursor = conn.cursor()
 
     # Organisms
     # Hs = Human
@@ -167,11 +160,7 @@ def main():
     # Rn = Rat
     # Gg = Chicken
     # Mm = Mouse
-
-    ### ------------------------------------------------------
-    ### First, run RNAhybrid over the mirna_target for the given organism, otherwise all organisms.
-    ### ------------------------------------------------------
-
+    
     # This is a dict mapping short organisms ('Hs','Cf') to long titles
     # in the MIRBASE_MIR_ORTHOLOG database.
     organisms = {'Hs': '',
@@ -180,6 +169,21 @@ def main():
                  'Rn': '',
                  'Gg': '',
                  'Mm': ''}
+
+    # Either one or all species
+    if options.oneSpecies:
+        specieslist = [options.oneSpecies]
+
+    # Instantiate SQL connection
+    conn = MySQLdb.connect(host = "localhost",
+                           user = "root",
+                           passwd = "KleinersLaws",
+                           db = "nagarajan")
+    cursor = conn.cursor()
+
+    ### ------------------------------------------------------
+    ### First, run RNAhybrid over the mirna_target for the given organism, otherwise all organisms.
+    ### ------------------------------------------------------
 
     # Should we look up orthologs to QUERY via MIRBASE_MIR_ORTHOLOG and scan them as well?
     if options.useOrthologs:
