@@ -51,10 +51,10 @@ def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
     if not nocache:
         results = load_cache('rnahybrid', cacheDir, cacheKey)
         if results:
-            print "\tRetreived from cache: %s (entrez id)" % entrez_geneid
+            print "\t\tRetreived from cache: %s (entrez id)" % entrez_geneid
             # TODO: Add checks here for hash collisions.
             return results
-    print "\tDe-novo run on: %s (entrez id)" % entrez_geneid
+    print "\t\tDe-novo run on: %s (entrez id)" % entrez_geneid
 
 
     # Set storing RNAhybrid output
@@ -104,11 +104,10 @@ def load_cache(module, cachedir, cachekey):
         cachevals = pickle.load(open(CACHEPATH + module + '/' + cachedir + cachekey + '.cache', 'rb'))
         return cachevals
     except IOError:
-        print "No cached data exists for these settings."
+        # No cached file exists
         return False
-    except pickle.UnpicklingError:
-        print "The cache was corruped. Regenerating."
-        return False
+    # If this raises pickle.UnpicklingError, we have an error in the file itself. That's weird.
+
 ### ---------------------------------------------
 
 def tba():
@@ -124,8 +123,8 @@ def main():
 
     # General settings
     parser.add_option("-s", "--oneSpecies", help="Specify a single species to query on, such as Hs "
-                      "or Pt. [Default: Use all species.]"
-                      default=False, action="store", dest="oneSpecies")
+                      "or Pt. [Default: Use all species.]",
+                      default=False, action="store", type="string", dest="oneSpecies")
 
     parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
                       "miRNA in the MIRBASE_MIR_ORTHOLOG database.",
@@ -151,24 +150,17 @@ def main():
     # Check that miRNA, if provided, is AUGC
     if (options.mirnaQuery):
         assert(re.match("^[AUTGCautgc]*$", args[-1]))
-
-
-    # Species
-    # Hs = Human
-    # Pt = Chimp
-    # Cf = Dog
-    # Rn = Rat
-    # Gg = Chicken
-    # Mm = Mouse
     
     # This is a dict mapping short species tags ('Hs','Cf') to long titles
-    # in the MIRBASE_MIR_ORTHOLOG database.
-    speciesMap = {'Hs': '',
-                  'Pt': '',
-                  'Cf': '',
-                  'Rn': '',
-                  'Gg': '',
-                  'Mm': ''}
+    # in the MIRBASE_MIR_ORTHOLOG database and TAXIDs.
+    # Note: These are /local/ TAXIDs via localtaxid_to_org (in cafeuser?)
+    speciesMap = {'Hs': ('', 7951), # Human
+                  'Pt': ('', 7943), # Chimp
+                  'Cf': ('', 7959), # Dog
+                  'Rn': ('', 8385), # Rat
+                  'Gg': ('', 7458), # Chicken
+                  'Mm': ('', 8364)} # Mouse
+
 
     # Either one or all species
     speciesList = speciesMap.keys()
@@ -185,23 +177,27 @@ def main():
     ### ------------------------------------------------------
     ### First, run RNAhybrid over the mirna_target for the given species, otherwise all species.
     ### ------------------------------------------------------
+    mirna_query = 'ACTGACATTTTGGGTCACA' # Fake target for test purposes.
 
+    # Build a Dictionary Storing RNAhybrid output
+    # Key = (entrez_geneid, species, mirna_query)
+    # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
+    results = {}
+                        
     for species in speciesList:
-        mirna_query = 'ACTGACATTTTGGGTCACA' # Fake target for test purposes.
+        print "\nRunning RNAHybrid.\n\tspecies: \t %s" % species
+        print "\tmiRNA Query: \t %s\n" % mirna_query
+    
         cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
                        "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
                        "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
-                       "AND ORGANISM = '" + species +"' LIMIT 10")
+                       "AND ORGANISM = '" + species +"'")
 
-        # Build a Dictionary Storing RNAhybrid output
-        # Key = (entrez_geneid, species, mirna_query)
-        # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-        results = {}     
-        
         while True:
             val = cursor.fetchone()
             if val == None:
                 break
+            # Full results storage will kill RAM. This needs to be a deque, or something.
             results[(val[0], species, mirna_query)] = rnahybrid(options.noCache, species, val[0], val[1], mirna_query)
 
     print "All done!\nResults is: %s" % len(results)
