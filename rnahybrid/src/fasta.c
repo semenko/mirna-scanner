@@ -16,8 +16,7 @@ void nextAC(FILE *f, char *ac)
 
     fgetpos(f,&startloc);
     while (fgets(s,MAXLINE,f)!=NULL && s[0]!='>');
-    if (s==NULL)
-    {
+    if (s==NULL) {
         fsetpos(f,&startloc);
         printf("Error in nextAC. Aborting\n");
         exit(2);
@@ -33,30 +32,25 @@ void nextSQ(FILE *f, char *sq, int maxseqlength)
 
     int offset = 0;
     fgetpos(f,&startloc);
-    if (fgets(sq,MAXLINE,f)!=NULL)
-    {
+    if (fgets(sq,MAXLINE,f)!=NULL) {
         while (sq[offset]!='\0')
             offset++;
         offset--;                // remove newline
-        if (offset > maxseqlength)
-        {
+        if (offset > maxseqlength) {
             return;
         }
         fgetpos(f,&startloc);
         while (fgets(sq+offset,MAXLINE,f)!=NULL)
-            if (sq[offset]=='>')
-        {
+        if (sq[offset]=='>') {
             sq[offset]='\0';
             fsetpos(f,&startloc);
             break;
         }
-        else
-        {
+        else {
             while (sq[offset]!='\0')
                 offset++;
             offset--;            // remove newline
-            if (offset > maxseqlength)
-            {
+            if (offset > maxseqlength) {
                 return;
             }
             fgetpos(f,&startloc);
@@ -78,8 +72,7 @@ int end(FILE *f)
     fgetpos(f,&startloc);
     if (fgets(s,MAXLINE,f)==NULL)
         return 1;
-    else
-    {
+    else {
         fsetpos(f,&startloc);
         return 0;
     }

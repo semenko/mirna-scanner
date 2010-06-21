@@ -96,8 +96,7 @@ int main(int argc, char **argv)
     float *freq;
     float *fdf;
 
-    for (i=0; i<4; i++)
-    {
+    for (i=0; i<4; i++) {
         freq_di[i] = (float *) calloc(4,sizeof(float));
         fdf_di[i]  = (float *) calloc(4,sizeof(float));
     }
@@ -105,66 +104,63 @@ int main(int argc, char **argv)
     fdf  = (float *) calloc(4,sizeof(float));
 
     while ((c = getopt(argc,argv,"d:f:hk:l:m:n:q:st:u:v:")) != EOF)
-        switch(c)
-        {
-            case 'd':
-                dflag = 1;
-                freq_filename = optarg;
-                break;
-            case 'f':
-                fflag=1;
-                sscanf(optarg,"%d,%d",&fflag_start,&fflag_end);
-                break;
-            case 'h':
-                hflag=1;
-                break;
-            case 'k':
-                kflag = 1;
-                sscanf(optarg,"%d",&sample_size);
-                break;
-            case 'l':
-                lflag = 1;
-                sscanf(optarg,"%d,%d",&mean,&stddev);
-                break;
-            case 'm':
-                mflag=1;
-                sscanf(optarg,"%d",&maxtargetlength);
-                break;
-            case 'n':
-                nflag=1;
-                sscanf(optarg,"%d",&maxquerylength);
-                break;
-            case 'q':
-                qflag = 1;
-                query_fn = optarg;
-                break;
-            case 's':
-                sflag = 1;
-                break;
-            case 't':
-                tflag = 1;
-                target_fn = optarg;
-                break;
-            case 'u':
-                uflag = 1;
-                sscanf(optarg,"%d",&iloop_upper_limit);
-                break;
-            case 'v':
-                vflag = 1;
-                sscanf(optarg,"%d",&bloop_upper_limit);
-                break;
-            case '?':
-                errflag = 1;
-                break;
-        }
+    switch(c) {
+        case 'd':
+            dflag = 1;
+            freq_filename = optarg;
+            break;
+        case 'f':
+            fflag=1;
+            sscanf(optarg,"%d,%d",&fflag_start,&fflag_end);
+            break;
+        case 'h':
+            hflag=1;
+            break;
+        case 'k':
+            kflag = 1;
+            sscanf(optarg,"%d",&sample_size);
+            break;
+        case 'l':
+            lflag = 1;
+            sscanf(optarg,"%d,%d",&mean,&stddev);
+            break;
+        case 'm':
+            mflag=1;
+            sscanf(optarg,"%d",&maxtargetlength);
+            break;
+        case 'n':
+            nflag=1;
+            sscanf(optarg,"%d",&maxquerylength);
+            break;
+        case 'q':
+            qflag = 1;
+            query_fn = optarg;
+            break;
+        case 's':
+            sflag = 1;
+            break;
+        case 't':
+            tflag = 1;
+            target_fn = optarg;
+            break;
+        case 'u':
+            uflag = 1;
+            sscanf(optarg,"%d",&iloop_upper_limit);
+            break;
+        case 'v':
+            vflag = 1;
+            sscanf(optarg,"%d",&bloop_upper_limit);
+            break;
+        case '?':
+            errflag = 1;
+            break;
+    }
 
-    if ((errflag || sflag && dflag || argc < 3) && !hflag)
-    {
+    if ((errflag || sflag && dflag || argc < 3) && !hflag) {
         printf("\nOption error. Type %s -h for usage.\n\n", argv[0]);
         exit(1);
     }
-    else if (hflag)
-    {
+    else if (hflag) {
         printf("\nUsage: %s [options] [query sequence].\n\noptions:\n\n  -d <dinucleotide frequencies file>\n  -f helix constraint\n  -h help\n  -k <sample size>\n  -l <mean sequence length>,<std sequence length>\n  -m <max targetlength>\n  -n <max query length>\n  -u <max internal loop size (per side)>\n  -v <max bulge loop size>\n  -s randomise queries (only with -q, without -d)\n  -t <target file>\n  -q <query file>\n\nIf no query file is given, random sequences are generated according\nto the given dinucleotide distribution. Then <sample size> sequences\nare generated whose lengths are normally distributed with given mean\nand standard deviation. Default sample size is 5000, default mean\nand std are 22 and 0, respectively.\n\nIf a query file is given, and additionally the -s option, random sequences\nare generated according to the dinucleotide distribution of the query file.\n\nIf only a query file is given, it is used directly as a random database.\n\nThe query can also be given directly (makes only sense with the -s option).\n\nA target file has to be given (FASTA format).\n\n\nThe helix constraint format is \"from,to\", eg. -f 2,7 forces\nstructures to have a helix from position 2 to 7 with respect to the query.\n\n", argv[0]);
         exit(0);
     }
@@ -174,8 +170,7 @@ int main(int argc, char **argv)
     if (!vflag)
         bloop_upper_limit = BLOOPUPPERLIMITDEFAULT;
 
-    if (!lflag)
-    {
+    if (!lflag) {
         mean = MIRNA_LENGTH_MEAN;
         stddev = MIRNA_LENGTH_STDDEV;
     }
@@ -187,16 +182,14 @@ int main(int argc, char **argv)
     xi = (float *) calloc(MAXORTHOLOGNUMBER,sizeof(float));
     theta = (float *) calloc(MAXORTHOLOGNUMBER,sizeof(float));
 
-    if (qflag && !sflag)
-    {
+    if (qflag && !sflag) {
         for (i=0; i<MAXORTHOLOGNUMBER; i++)
             normalised_energies[i] = (float *) calloc(MAXQUERYNUMBER,sizeof(float));
         temp_energies = (float *) calloc(MAXQUERYNUMBER,sizeof(float));
         maximal_pvalues = (float *) calloc(MAXQUERYNUMBER,sizeof(float));
         joint_pvalues = (float *) calloc(MAXQUERYNUMBER,sizeof(float));
     }
-    else
-    {
+    else {
         for (i=0; i<MAXORTHOLOGNUMBER; i++)
             normalised_energies[i] = (float *) calloc(sample_size,sizeof(float));
         temp_energies = (float *) calloc(sample_size,sizeof(float));
@@ -209,13 +202,11 @@ int main(int argc, char **argv)
     if (!nflag)
         maxquerylength = MAXQUERY;
 
-    if (qflag)
-    {
+    if (qflag) {
         query_sq = (char *) calloc(maxquerylength+MAXLINE+1, sizeof(char));
         querylength = maxquerylength;
     }
-    else
-    {
+    else {
         query_sq  = (char *) calloc(strlen(argv[argc-1])+1,sizeof(char));
         strcpy(query_ac,"command_line");
         strcpy(query_sq,argv[argc-1]);
@@ -223,14 +214,12 @@ int main(int argc, char **argv)
         querylength = strlen(argv[argc-1]);
     }
 
-    if (tflag)
-    {
+    if (tflag) {
         target_sq = (char *) calloc(maxtargetlength+MAXLINE+1,sizeof(char));
         targetlength = maxtargetlength;
     }
 
-    if (!tflag && argv[argc-1-(!qflag)][0] != '-')
-    {
+    if (!tflag && argv[argc-1-(!qflag)][0] != '-') {
         /* target sequence given on command line */
         target_sq = (char *) calloc(strlen(argv[argc-1-(!qflag)])+1,sizeof(char));
         strcpy(target_ac,"command_line");
@@ -239,27 +228,23 @@ int main(int argc, char **argv)
         targetlength = strlen(target_sq);
     }
 
-    if (sflag)
-    {
+    if (sflag) {
         /* initialise dinucleotide frequencies: */
         for (i=0; i<4; i++)
             for (j=0; j<4; j++)
                 freq_di[i][j] = 0.0;
 
-        if (qflag)
-        {
+        if (qflag) {
             /* open query file: */
             FILE *query = fopen(query_fn,"r");
-            if (query==NULL)
-            {
+            if (query==NULL) {
                 printf("Error: Could not open query file. Aborting.\n");
                 exit(2);
             }
 
             /* iterate over query sequences: */
             counter = 0;
-            while (!end(query))
-            {
+            while (!end(query)) {
 
                 nextAC(query,query_ac);
                 nextSQ(query,query_sq,maxquerylength);
@@ -268,8 +253,7 @@ int main(int argc, char **argv)
 
                 seqlen = strlen(query_sq);
                 /* count dinucleotides: */
-                for (k=0; k<seqlen-1; k++)
-                {
+                for (k=0; k<seqlen-1; k++) {
                     letter_one = toupper(query_sq[k]);
                     letter_two = toupper(query_sq[k+1]);
 
@@ -281,8 +265,7 @@ int main(int argc, char **argv)
                     index_one = (int) strchr(alphabet,letter_one);
                     index_two = (int) strchr(alphabet,letter_two);
 
-                    if (index_one != 0 && index_two != 0)
-                    {
+                    if (index_one != 0 && index_two != 0) {
                         freq_di[index_one-(int) alphabet][index_two-(int) alphabet]++;
                         counter++;
                     }
@@ -291,14 +274,12 @@ int main(int argc, char **argv)
             /* close query file: */
             fclose(query);
         }                        /* if qflag */
-        else                     /* !qflag */
-        {
+        else {                   /* !qflag */
 
             counter = 0;
             seqlen = strlen(query_sq);
             /* count dinucleotides: */
-            for (k=0; k<seqlen-1; k++)
-            {
+            for (k=0; k<seqlen-1; k++) {
                 letter_one = toupper(query_sq[k]);
                 letter_two = toupper(query_sq[k+1]);
 
@@ -310,8 +291,7 @@ int main(int argc, char **argv)
                 index_one = (int) strchr(alphabet,letter_one);
                 index_two = (int) strchr(alphabet,letter_two);
 
-                if (index_one != 0 && index_two != 0)
-                {
+                if (index_one != 0 && index_two != 0) {
                     freq_di[index_one-(int) alphabet][index_two-(int) alphabet]++;
                     counter++;
                 }
@@ -343,8 +323,7 @@ int main(int argc, char **argv)
     if (qflag && sflag || !qflag && argv[argc-1][0] != '-' && sflag)
         free(query_sq);
 
-    if (dflag)
-    {
+    if (dflag) {
         /*   read dinucleotide frequencies: */
         f = fopen(freq_filename,"r");
         read_dinucleotide_frequencies(freq_di,f);
@@ -352,8 +331,7 @@ int main(int argc, char **argv)
     }
 
     /*   calculate single nucleotide frequencies: */
-    for (i=0; i<strlen(alphabet); i++)
-    {
+    for (i=0; i<strlen(alphabet); i++) {
         freq[i]=2*freq_di[i][i];
         for (j=0; j<strlen(alphabet); j++)
             if (i!=j)
@@ -370,8 +348,7 @@ int main(int argc, char **argv)
         fdf[i]=fdf[i-1]+freq[i];
     fdf[strlen(alphabet)-1]=1.0;
 
-    for (i=0; i<strlen(alphabet); i++)
-    {
+    for (i=0; i<strlen(alphabet); i++) {
         float row_sum = 0;
         for (j=0; j<strlen(alphabet); j++)
             row_sum+=freq_di[i][j];
@@ -385,21 +362,18 @@ int main(int argc, char **argv)
 
     /*  Search: */
 
-    if (qflag && !sflag)
-    {
+    if (qflag && !sflag) {
 
         /* open query file: */
         FILE *query = fopen(query_fn,"r");
-        if (query==NULL)
-        {
+        if (query==NULL) {
             printf("Error: Could not open query file. Aborting.\n");
             exit(2);
         }
 
         /* iterate over query sequences: */
         counter = 0;
-        while (!end(query))
-        {
+        while (!end(query)) {
 
             nextAC(query,query_ac);
             nextSQ(query,query_sq,maxquerylength);
@@ -410,13 +384,11 @@ int main(int argc, char **argv)
 
             n = strlen(query_sq);
 
-            if (fflag)
-            {
+            if (fflag) {
                 helix_start = n - fflag_end;
                 helix_end   = n - fflag_start + 1;
             }
-            else
-            {
+            else {
                 helix_start = 0;
                 helix_end   = 0;
             }
@@ -426,19 +398,16 @@ int main(int argc, char **argv)
             y[n+1]=0;
             convert_y();
 
-            if (tflag)
-            {
+            if (tflag) {
 
                 FILE *target = fopen(target_fn,"r");
-                if (target==NULL)
-                {
+                if (target==NULL) {
                     printf("Error: Could not open target file. Aborting.\n");
                     exit(2);
                 }
 
                 k = 0;
-                while (!end(target) && k<MAXTARGETNUMBER)
-                {
+                while (!end(target) && k<MAXTARGETNUMBER) {
 
                     nextAC(target,target_ac);
                     nextSQ(target,target_sq,maxtargetlength);
@@ -447,20 +416,16 @@ int main(int argc, char **argv)
 
                     m = strlen(target_sq);
 
-                    if (m > maxtargetlength)
-                    {
+                    if (m > maxtargetlength) {
                         printf("target too long: %s\n", target_ac);
                     }
-                    else
-                    {
+                    else {
                         strcpy(x, " ");
                         strcat(x, target_sq);
                         convert_x();
 
-                        for (i1=m; i1>=0; i1--)
-                        {
-                            for (i2=n; i2>=0; i2--)
-                            {
+                        for (i1=m; i1>=0; i1--) {
+                            for (i2=n; i2>=0; i2--) {
                                 calc_unpaired_left_bot(i1, m, i2, n);
                                 calc_closed           (i1, m, i2, n);
                                 calc_unpaired_left_top(i1, m, i2, n);
@@ -482,8 +447,7 @@ int main(int argc, char **argv)
                 }
                 fclose(target);
             }
-            else                 /* !tflag */
-            {
+            else {               /* !tflag */
                 printf("Shouldn't happen.\n");
                 exit(1);
             }
@@ -492,8 +456,7 @@ int main(int argc, char **argv)
 
             l++;
         }
-        for (i=0; i<k; i++)
-        {
+        for (i=0; i<k; i++) {
             for (j=0; j<l; j++)
                 temp_energies[j] = normalised_energies[i][j];
             estimate_evd_parameters(&used_sample_size,&xi[i],&theta[i],temp_energies,l);
@@ -501,10 +464,8 @@ int main(int argc, char **argv)
         }
 
         /* calculate p-values: */
-        for (j=0; j<l; j++)
-        {
-            for (i=0; i<k; i++)
-            {
+        for (j=0; j<l; j++) {
+            for (i=0; i<k; i++) {
                 pvalue = 1-exp(-exp(-(normalised_energies[i][j]-xi[i])/theta[i]));
                 if (i==0 || pvalue > maximal_pvalues[j])
                     maximal_pvalues[j] = pvalue;
@@ -516,8 +477,7 @@ int main(int argc, char **argv)
 
         /* find effective number of orthologs: */
         effective_number = -1.0;
-        for (exponent=1.0; exponent<(float) k+0.01; exponent=exponent+0.1)
-        {
+        for (exponent=1.0; exponent<(float) k+0.01; exponent=exponent+0.1) {
 
             /* joint pvalues: */
             for (j=0; j<l; j++)
@@ -534,8 +494,7 @@ int main(int argc, char **argv)
             printf("%f %f\n",exponent,error_sum);
 
             /* check for new minimum: */
-            if (effective_number == -1.0 || error_sum < smallest_error_sum)
-            {
+            if (effective_number == -1.0 || error_sum < smallest_error_sum) {
                 smallest_error_sum = error_sum;
                 effective_number = exponent;
             }
@@ -544,24 +503,20 @@ int main(int argc, char **argv)
         printf("Effective number: %f\n",effective_number);
 
     }
-    else if (qflag && sflag || !qflag && sflag)
-    {
+    else if (qflag && sflag || !qflag && sflag) {
 
         l = 0;
-        while (l<sample_size)
-        {
+        while (l<sample_size) {
             do seqlen = (int) (normal_random_number()*stddev+mean); while (seqlen < 1 || seqlen > maxquerylength);
             query_sq = random_sequence(seqlen,fdf,fdf_di);
 
             n = strlen(query_sq);
 
-            if (fflag)
-            {
+            if (fflag) {
                 helix_start = n - fflag_end;
                 helix_end   = n - fflag_start + 1;
             }
-            else
-            {
+            else {
                 helix_start = 0;
                 helix_end   = 0;
             }
@@ -571,19 +526,16 @@ int main(int argc, char **argv)
             y[n+1]=0;
             convert_y();
 
-            if (tflag)
-            {
+            if (tflag) {
 
                 FILE *target = fopen(target_fn,"r");
-                if (target==NULL)
-                {
+                if (target==NULL) {
                     printf("Error: Could not open target file. Aborting.\n");
                     exit(2);
                 }
 
                 k = 0;
-                while (!end(target) && k<MAXTARGETNUMBER)
-                {
+                while (!end(target) && k<MAXTARGETNUMBER) {
 
                     nextAC(target,target_ac);
                     nextSQ(target,target_sq,maxtargetlength);
@@ -592,20 +544,16 @@ int main(int argc, char **argv)
 
                     m = strlen(target_sq);
 
-                    if (m > maxtargetlength)
-                    {
+                    if (m > maxtargetlength) {
                         printf("target too long: %s\n", target_ac);
                     }
-                    else
-                    {
+                    else {
                         strcpy(x, " ");
                         strcat(x, target_sq);
                         convert_x();
 
-                        for (i1=m; i1>=0; i1--)
-                        {
-                            for (i2=n; i2>=0; i2--)
-                            {
+                        for (i1=m; i1>=0; i1--) {
+                            for (i2=n; i2>=0; i2--) {
                                 calc_unpaired_left_bot(i1, m, i2, n);
                                 calc_closed           (i1, m, i2, n);
                                 calc_unpaired_left_top(i1, m, i2, n);
@@ -627,8 +575,7 @@ int main(int argc, char **argv)
                 }
                 fclose(target);
             }
-            else                 /* !tflag */
-            {
+            else {               /* !tflag */
                 printf("Shouldn't happen.\n");
                 exit(1);
             }
@@ -637,8 +584,7 @@ int main(int argc, char **argv)
 
             l++;
         }
-        for (i=0; i<k; i++)
-        {
+        for (i=0; i<k; i++) {
             for (j=0; j<l; j++)
                 temp_energies[j] = normalised_energies[i][j];
             estimate_evd_parameters(&used_sample_size,&xi[i],&theta[i],temp_energies,l);
@@ -646,10 +592,8 @@ int main(int argc, char **argv)
         }
 
         /* calculate p-values: */
-        for (j=0; j<l; j++)
-        {
-            for (i=0; i<k; i++)
-            {
+        for (j=0; j<l; j++) {
+            for (i=0; i<k; i++) {
                 pvalue = 1-exp(-exp(-(normalised_energies[i][j]-xi[i])/theta[i]));
                 if (i==0 || pvalue > maximal_pvalues[j])
                     maximal_pvalues[j] = pvalue;
@@ -661,8 +605,7 @@ int main(int argc, char **argv)
 
         /* find effective number of orthologs: */
         effective_number = -1.0;
-        for (exponent=1.0; exponent<(float) k+0.01; exponent=exponent+0.1)
-        {
+        for (exponent=1.0; exponent<(float) k+0.01; exponent=exponent+0.1) {
 
             /* joint pvalues: */
             for (j=0; j<l; j++)
@@ -679,8 +622,7 @@ int main(int argc, char **argv)
             printf("%f %f\n",exponent,error_sum);
 
             /* check for new minimum: */
-            if (effective_number == -1.0 || error_sum < smallest_error_sum)
-            {
+            if (effective_number == -1.0 || error_sum < smallest_error_sum) {
                 smallest_error_sum = error_sum;
                 effective_number = exponent;
             }
@@ -689,8 +631,7 @@ int main(int argc, char **argv)
         printf("Effective number: %f\n",effective_number);
 
     }
-    else                         /* !qflag && !sflag */
-    {
+    else {                       /* !qflag && !sflag */
         printf("Refusing to base analysis on one query sequence. Aborting.\n");
         exit(2);
     }

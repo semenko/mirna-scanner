@@ -84,73 +84,71 @@ int main(int argc, char **argv)
     float xi_slope, xi_intercept, theta_slope, theta_intercept;
 
     while ((c = getopt(argc,argv,"b:cd:e:f:g:hm:n:p:q:s:t:u:v:")) != EOF)
-        switch(c)
-        {
-            case 'b':
-                bflag=1;
-                sscanf(optarg,"%d",&hit_number);
-                break;
-            case 'c':
-                cflag=1;
-                break;
-            case 'd':
-                dflag=1;
-                sscanf(optarg,"%f,%f",&xi,&theta);
-                break;
-            case 'e':
-                eflag=1;
-                sscanf(optarg,"%f",&energy_cutoff);
-                break;
-            case 'f':
-                fflag=1;
-                sscanf(optarg,"%d,%d",&fflag_start,&fflag_end);
-                break;
-            case 'g':
-                gflag=1;
-                gflag_argument = optarg;
-                break;
-            case 'h':
-                hflag=1;
-                break;
-            case 'm':
-                mflag=1;
-                sscanf(optarg,"%d",&maxtargetlength);
-                break;
-            case 'n':
-                nflag=1;
-                sscanf(optarg,"%d",&maxquerylength);
-                break;
-            case 'p':
-                pflag=1;
-                sscanf(optarg,"%f",&pvalue_cutoff);
-                break;
-            case 'q':
-                qflag = 1;
-                query_fn = optarg;
-                break;
-            case 's':
-                sflag=1;
-                setname = optarg;
-                break;
-            case 't':
-                tflag = 1;
-                target_fn = optarg;
-                break;
-            case 'u':
-                uflag = 1;
-                sscanf(optarg,"%d",&iloop_upper_limit);
-                break;
-            case 'v':
-                vflag = 1;
-                sscanf(optarg,"%d",&bloop_upper_limit);
-                break;
-            case '?':
-                errflag = 1;
-                break;
-        }
+    switch(c) {
+        case 'b':
+            bflag=1;
+            sscanf(optarg,"%d",&hit_number);
+            break;
+        case 'c':
+            cflag=1;
+            break;
+        case 'd':
+            dflag=1;
+            sscanf(optarg,"%f,%f",&xi,&theta);
+            break;
+        case 'e':
+            eflag=1;
+            sscanf(optarg,"%f",&energy_cutoff);
+            break;
+        case 'f':
+            fflag=1;
+            sscanf(optarg,"%d,%d",&fflag_start,&fflag_end);
+            break;
+        case 'g':
+            gflag=1;
+            gflag_argument = optarg;
+            break;
+        case 'h':
+            hflag=1;
+            break;
+        case 'm':
+            mflag=1;
+            sscanf(optarg,"%d",&maxtargetlength);
+            break;
+        case 'n':
+            nflag=1;
+            sscanf(optarg,"%d",&maxquerylength);
+            break;
+        case 'p':
+            pflag=1;
+            sscanf(optarg,"%f",&pvalue_cutoff);
+            break;
+        case 'q':
+            qflag = 1;
+            query_fn = optarg;
+            break;
+        case 's':
+            sflag=1;
+            setname = optarg;
+            break;
+        case 't':
+            tflag = 1;
+            target_fn = optarg;
+            break;
+        case 'u':
+            uflag = 1;
+            sscanf(optarg,"%d",&iloop_upper_limit);
+            break;
+        case 'v':
+            vflag = 1;
+            sscanf(optarg,"%d",&bloop_upper_limit);
+            break;
+        case '?':
+            errflag = 1;
+            break;
+    }
 
-    if (eflag && (energy_cutoff > 0))
-    {
+    if (eflag && (energy_cutoff > 0)) {
         printf("Warning: energy cut-off positive. I'm converting it to minus the value you gave.\n");
         energy_cutoff = -energy_cutoff;
     }
@@ -161,8 +159,7 @@ int main(int argc, char **argv)
         bloop_upper_limit = BLOOPUPPERLIMITDEFAULT;
 
     #ifdef HAVE_LIBG2
-    if (gflag)
-    {
+    if (gflag) {
         if (strcmp(gflag_argument,"ps")==0)
             plot_format = PSPLOT;
         #ifdef HAVE_LIBGD
@@ -173,21 +170,18 @@ int main(int argc, char **argv)
         else if (strcmp(gflag_argument,"all")==0)
             plot_format = ALLPLOT;
         #endif
-        else
-        {
+        else {
             printf("\nWrong plot format.\n");
             errflag = 1;
         }
     }
     #endif
 
-    if (errflag || argc < 3 && !hflag)
-    {
+    if (errflag || argc < 3 && !hflag) {
         printf("\nOption error. Type %s -h for usage.\n\n", argv[0]);
         exit(1);
     }
-    else if (hflag)
-    {
+    else if (hflag) {
         printf("\nThis version is the latest version as of 3/12/2010\n\nUsage: %s [options] [target sequence] [query sequence].\n\noptions:\n\n  -b <number of hits per target>\n  -c compact output\n  -d <xi>,<theta>\n  -f helix constraint\n  -h help\n  -m <max targetlength>\n  -n <max query length>\n  -u <max internal loop size (per side)>\n  -v <max bulge loop size>\n  -e <energy cut-off>\n  -p <p-value cut-off>\n  -s (3utr_fly|3utr_worm|3utr_human)\n  -g (ps|png|jpg|all)\n  -t <target file>\n  -q <query file>\n\nEither a target file has to be given (FASTA format)\nor one target sequence directly.\n\nEither a query file has to be given (FASTA format)\nor one query sequence directly.\n\nThe helix constraint format is \"from,to\", eg. -f 2,7 forces\nstructures to have a helix from position 2 to 7 with respect to the query.\n\n<xi> and <theta> are the position and shape parameters, respectively,\nof the extreme value distribution assumed for p-value calculation.\nIf omitted, they are estimated from the maximal duplex energy of the query.\nIn that case, a data set name has to be given with the -s flag.\n\n", argv[0]);
 
         #ifndef HAVE_LIBG2
@@ -200,37 +194,31 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    if (!dflag && !sflag)
-    {
+    if (!dflag && !sflag) {
         printf("Error: without -d you have to give -s option. Aborting.\n");
         exit(2);
     }
 
-    if (sflag)
-    {
-        if (strcmp(setname,SETNAME_3UTR_FLY) == 0)
-        {
+    if (sflag) {
+        if (strcmp(setname,SETNAME_3UTR_FLY) == 0) {
             xi_slope = XI_SLOPE_3UTR_FLY;
             xi_intercept = XI_INTERCEPT_3UTR_FLY;
             theta_slope = THETA_SLOPE_3UTR_FLY;
             theta_intercept = THETA_INTERCEPT_3UTR_FLY;
         }
-        else if (strcmp(setname,SETNAME_3UTR_WORM) == 0)
-        {
+        else if (strcmp(setname,SETNAME_3UTR_WORM) == 0) {
             xi_slope = XI_SLOPE_3UTR_WORM;
             xi_intercept = XI_INTERCEPT_3UTR_WORM;
             theta_slope = THETA_SLOPE_3UTR_WORM;
             theta_intercept = THETA_INTERCEPT_3UTR_WORM;
         }
-        else if (strcmp(setname,SETNAME_3UTR_HUMAN) == 0)
-        {
+        else if (strcmp(setname,SETNAME_3UTR_HUMAN) == 0) {
             xi_slope = XI_SLOPE_3UTR_HUMAN;
             xi_intercept = XI_INTERCEPT_3UTR_HUMAN;
             theta_slope = THETA_SLOPE_3UTR_HUMAN;
             theta_intercept = THETA_INTERCEPT_3UTR_HUMAN;
         }
-        else
-        {
+        else {
             printf("Error: unknown set name. Aborting.\n");
             exit(2);
         }
@@ -241,16 +229,14 @@ int main(int argc, char **argv)
     if (!nflag)
         maxquerylength = MAXQUERY;
 
-    if (tflag && qflag)
-    {
+    if (tflag && qflag) {
         target_sq = (char *) calloc(maxtargetlength+MAXLINE+1,sizeof(char));
         query_sq = (char *) calloc(maxquerylength+MAXLINE+1, sizeof(char));
         targetlength = maxtargetlength;
         querylength = maxquerylength;
     }
 
-    if (tflag && !qflag)
-    {
+    if (tflag && !qflag) {
         target_sq = (char *) calloc(maxtargetlength+MAXLINE+1,sizeof(char));
         query_sq  = (char *) calloc(strlen(argv[argc-1])+1,sizeof(char));
         strcpy(query_ac,"command_line");
@@ -260,8 +246,7 @@ int main(int argc, char **argv)
         querylength = strlen(argv[argc-1]);
     }
 
-    if (!tflag && qflag)
-    {
+    if (!tflag && qflag) {
         target_sq = (char *) calloc(strlen(argv[argc-1])+1,sizeof(char));
         query_sq = (char *) calloc(maxquerylength+MAXLINE+1, sizeof(char));
         strcpy(target_ac,"command_line");
@@ -271,8 +256,7 @@ int main(int argc, char **argv)
         querylength = maxquerylength;
     }
 
-    if (!tflag && !qflag)
-    {
+    if (!tflag && !qflag) {
         target_sq = (char *) calloc(strlen(argv[argc-2])+1,sizeof(char));
         query_sq  = (char *) calloc(strlen(argv[argc-1])+1,sizeof(char));
         strcpy(target_ac,"command_line");
@@ -299,17 +283,14 @@ int main(int argc, char **argv)
     x = (char *) calloc(targetlength+2, sizeof(char));
     y = (char *) calloc( querylength+2, sizeof(char));
 
-    if (qflag)
-    {
+    if (qflag) {
         FILE *query  = fopen( query_fn,"r");
-        if (query==NULL)
-        {
+        if (query==NULL) {
             printf("Error: Could not open query file. Aborting.\n");
             exit(2);
         }
 
-        while (!end(query))
-        {
+        while (!end(query)) {
 
             nextAC(query,query_ac);
             nextSQ(query,query_sq,maxquerylength);
@@ -318,33 +299,28 @@ int main(int argc, char **argv)
 
             n = strlen(query_sq);
 
-            if (!dflag)
-            {
+            if (!dflag) {
                 // estimate evd parameters from maximal duplex energy
                 mde = maximal_duplex_energy(query_sq);
                 xi    =    xi_slope * mde +    xi_intercept;
                 theta = theta_slope * mde + theta_intercept;
             }
 
-            if (fflag)
-            {
+            if (fflag) {
                 //helix_start = n - fflag_end;
                 //helix_end   = n - fflag_start + 1;
                 helix_start = fflag_start - 1;
                 helix_end   = fflag_end;
             }
-            else
-            {
+            else {
                 helix_start = 0;
                 helix_end   = 0;
             }
 
-            if (n > maxquerylength)
-            {
+            if (n > maxquerylength) {
                 printf("query too long: %s\n", query_ac);
             }
-            else
-            {
+            else {
                 /* flipping mRNA rather than miRNA */
                 /*
                         y[0]=' ';
@@ -357,17 +333,14 @@ int main(int argc, char **argv)
 
                 convert_y();
 
-                if (tflag)
-                {
+                if (tflag) {
                     FILE *target = fopen(target_fn,"r");
-                    if (target==NULL)
-                    {
+                    if (target==NULL) {
                         printf("Error: Could not open target file. Aborting.\n");
                         exit(2);
                     }
 
-                    while (!end(target))
-                    {
+                    while (!end(target)) {
                         nextAC(target,target_ac);
                         nextSQ(target,target_sq,maxtargetlength);
 
@@ -375,12 +348,10 @@ int main(int argc, char **argv)
 
                         m = strlen(target_sq);
 
-                        if (m > maxtargetlength)
-                        {
+                        if (m > maxtargetlength) {
                             printf("target too long: %s\n", target_ac);
                         }
-                        else
-                        {
+                        else {
                             /* flipping mRNA rather than miRNA */
                             /*
                               strcpy(x, " ");
@@ -399,8 +370,7 @@ int main(int argc, char **argv)
 
                     fclose(target);
                 }
-                else
-                {
+                else {
                     m = strlen(target_sq);
 
                     /* flipping mRNA rather than miRNA */
@@ -422,27 +392,23 @@ int main(int argc, char **argv)
 
         fclose(query);
     }
-    else                         /* !qflag */
-    {
+    else {                       /* !qflag */
         n = strlen(query_sq);
 
-        if (!dflag)
-        {
+        if (!dflag) {
             // estimate evd parameters from maximal duplex energy
             mde = maximal_duplex_energy(query_sq);
             xi    =    xi_slope * mde +    xi_intercept;
             theta = theta_slope * mde + theta_intercept;
         }
 
-        if (fflag)
-        {
+        if (fflag) {
             //helix_start = n - fflag_end;
             //helix_end   = n - fflag_start + 1;
             helix_start = fflag_start - 1;
             helix_end   = fflag_end;
         }
-        else
-        {
+        else {
             helix_start = 0;
             helix_end   = 0;
         }
@@ -459,12 +425,11 @@ int main(int argc, char **argv)
 
         convert_y();
 
-        if (tflag)
-        {                        /* !qflag && tflag */
+        if (tflag) {
+                                 /* !qflag && tflag */
             FILE *target = fopen(target_fn,"r");
 
-            while (!end(target))
-            {
+            while (!end(target)) {
 
                 nextAC(target,target_ac);
                 nextSQ(target,target_sq,maxtargetlength);
@@ -473,12 +438,10 @@ int main(int argc, char **argv)
 
                 m = strlen(target_sq);
 
-                if (m > maxtargetlength)
-                {
+                if (m > maxtargetlength) {
                     printf("target too long: %s\n", target_ac);
                 }
-                else
-                {
+                else {
                     /* flipping mRNA rather than miRNA */
                     /*
                           strcpy(x, " ");
@@ -497,8 +460,7 @@ int main(int argc, char **argv)
 
             fclose(target);
         }
-        else                     /* !qflag && !tflag */
-        {
+        else {                   /* !qflag && !tflag */
             m = strlen(target_sq);
 
             /* flipping mRNA rather than miRNA */
@@ -532,8 +494,7 @@ float maximal_duplex_energy(char *seq_arg)
     char c;
 
     // convert sequence:
-    for (i=0; i<seq_len; i++)
-    {
+    for (i=0; i<seq_len; i++) {
         c=seq_arg[i];
         if      (c=='a' || c=='A') seq[i]=A;
         else if (c=='c' || c=='C') seq[i]=C;
@@ -544,8 +505,7 @@ float maximal_duplex_energy(char *seq_arg)
     }
 
     // make reverse complement:
-    for (i=0; i<seq_len; i++)
-    {
+    for (i=0; i<seq_len; i++) {
         c = seq[seq_len-i-1];
         if      (c==A) rc[i]=U;
         else if (c==C) rc[i]=G;

@@ -74,8 +74,7 @@ void hybridPlot(char *seq, char *str, double energy, int sepPos, char *filename,
     //    }
 
     // calculate image dimensions
-    for(i=0;i<strlen(str);i++)
-    {
+    for(i=0;i<strlen(str);i++) {
         min_X=min(min_X,X[i]);
         max_X=max(max_X,X[i]);
         min_Y=min(min_Y,Y[i]);
@@ -91,20 +90,17 @@ void hybridPlot(char *seq, char *str, double energy, int sepPos, char *filename,
     // open device with respect to "format"
     id     = g2_open_vd();
 
-    if(format==PSPLOT)
-    {
+    if(format==PSPLOT) {
         id_PS  = g2_open_EPSF(filename);
         g2_attach(id,id_PS);
     }
 
     #ifdef HAVE_LIBGD
-    if(format==PNGPLOT)
-    {
+    if(format==PNGPLOT) {
         id_PNG=g2_open_gd(filename,(int)(max_X-min_X),(int)(max_Y-min_Y),g2_gd_png);
         g2_attach(id,id_PNG);
     }
-    if(format==JPGPLOT)
-    {
+    if(format==JPGPLOT) {
         id_JPG=g2_open_gd(filename,(int)(max_X-min_X),(int)(max_Y-min_Y),g2_gd_jpeg);
         g2_attach(id,id_JPG);
     }
@@ -123,10 +119,8 @@ void hybridPlot(char *seq, char *str, double energy, int sepPos, char *filename,
     g2_string(id,min_X+40,min_Y+20,energy_str);
 
     // define colors
-    if(blackWhite)
-    {
-        switch(format)
-        {
+    if(blackWhite) {
+        switch(format) {
             case PSPLOT:
                 ps_color_black=g2_ink(id_PS,0,0,0);
                 ps_color_red=g2_ink(id_PS,0,0,0);
@@ -156,10 +150,8 @@ void hybridPlot(char *seq, char *str, double energy, int sepPos, char *filename,
             #endif
         }
     }
-    else
-    {
-        switch(format)
-        {
+    else {
+        switch(format) {
             case PSPLOT:
                 ps_color_black=g2_ink(id_PS,0,0,0);
                 ps_color_red=g2_ink(id_PS,1,0,0);
@@ -192,8 +184,7 @@ void hybridPlot(char *seq, char *str, double energy, int sepPos, char *filename,
 
     // draw sequence
     g2_set_font_size(id,base_fontsize);
-    for(i=0;i<strlen(str);i++)
-    {
+    for(i=0;i<strlen(str);i++) {
         if(i<sepPos)
             g2_pen(id,ps_color_red);
         else
@@ -206,10 +197,8 @@ void hybridPlot(char *seq, char *str, double energy, int sepPos, char *filename,
             g2_string(id,xpos,ypos,buf);
 
         // connection to next base
-        if(i<strlen(str)-1)
-        {
-            if(i<sepPos-4 || i>sepPos-1)
-            {
+        if(i<strlen(str)-1) {
+            if(i<sepPos-4 || i>sepPos-1) {
                 if(i<sepPos)
                     g2_pen(id,ps_color_red);
                 else
@@ -228,10 +217,8 @@ void hybridPlot(char *seq, char *str, double energy, int sepPos, char *filename,
 
     // draw pairings
     // !!! pair_table indexing begins at 1 !!!
-    for(i=0;i<strlen(str);i++)
-    {
-        if((unsigned short)pair_table[i+1]>i+1)
-        {
+    for(i=0;i<strlen(str);i++) {
+        if((unsigned short)pair_table[i+1]>i+1) {
             // pairs in both structures
             g2_pen(id,ps_color_black);
             g2_pen(id,ps_color_black);
@@ -262,17 +249,14 @@ short *make_pair_table(const char *structure)
     table = (short *) space(sizeof(short)*(length+2));
     table[0] = length;
 
-    for (hx=0, i=1; i<=length; i++)
-    {
-        switch (structure[i-1])
-        {
+    for (hx=0, i=1; i<=length; i++) {
+        switch (structure[i-1]) {
             case '(':
                 stack[hx++]=i;
                 break;
             case ')':
                 j = stack[--hx];
-                if (hx<0)
-                {
+                if (hx<0) {
                     fprintf(stderr, "%s\n", structure);
                     nrerror("unbalanced brackets in make_pair_table");
                 }
@@ -284,8 +268,7 @@ short *make_pair_table(const char *structure)
                 break;
         }
     }
-    if (hx!=0)
-    {
+    if (hx!=0) {
         fprintf(stderr, "%s\n", structure);
         nrerror("unbalanced brackets in make_pair_table");
     }
@@ -298,8 +281,7 @@ void *space(unsigned size)
 {
     void *pointer;
 
-    if ( (pointer = (void *) calloc(1, (size_t) size)) == NULL)
-    {
+    if ( (pointer = (void *) calloc(1, (size_t) size)) == NULL) {
         nrerror("SPACE allocation failure -> no memory");
     }
     return  pointer;
@@ -336,8 +318,7 @@ int simple_xy_coordinates(short *pair_table, float *x, float *y)
     x[0]  = INIT_X;
     y[0]  = INIT_Y;
 
-    for (i = 1; i <= length; i++)
-    {
+    for (i = 1; i <= length; i++) {
         x[i] = x[i-1]+RADIUS*cos(alpha);
         y[i] = y[i-1]+RADIUS*sin(alpha);
         alpha += PI-angle[i+1];
@@ -377,13 +358,11 @@ i-1 and j+1 are paired. */
     /* j has now been set to the partner of the
                        previous pair for correct while-loop
                        termination.  */
-    while (i != j)
-    {
+    while (i != j) {
         partner = pair_table[i];
         if ((!partner) || (i==0))
             i++, count++, bubble++;
-        else
-        {
+        else {
             count += 2;
             k = i, l = partner;  /* beginning of stack */
             remember[++r] = k;
@@ -392,16 +371,14 @@ i-1 and j+1 are paired. */
 
             start_k = k, start_l = l;
             ladder = 0;
-            do
-            {
+            do {
                                  /* go along the stack region */
                 k++, l--, ladder++;
             }
             while (pair_table[k] == l);
 
             fill = ladder-2;
-            if (ladder >= 2)
-            {
+            if (ladder >= 2) {
                                  /*  Loop entries and    */
                 angle[start_k+1+fill] += PIHALF;
                                  /*  exits get an        */
@@ -410,10 +387,8 @@ i-1 and j+1 are paired. */
                 angle[start_k]        += PIHALF;
                                  /*  Why ? (exercise)    */
                 angle[start_l]        += PIHALF;
-                if (ladder > 2)
-                {
-                    for (; fill >= 1; fill--)
-                    {
+                if (ladder > 2) {
+                    for (; fill >= 1; fill--) {
                                  /*  fill in the angles  */
                         angle[start_k+fill] = PI;
                                  /*  for the backbone    */
@@ -429,8 +404,7 @@ i-1 and j+1 are paired. */
     polygon = PI*(count-2)/(float)count;
     remember[++r] = j;
     begin = i_old < 0 ? 0 : i_old;
-    for (v = 1; v <= r; v++)
-    {
+    for (v = 1; v <= r; v++) {
         diff  = remember[v]-begin;
         for (fill = 0; fill <= diff; fill++)
             angle[begin+fill] += polygon;

@@ -21,12 +21,9 @@ void read_dinucleotide_frequencies(float **freq_di, FILE *f)
     char s [MAXLINE];
     int i,j;
 
-    while (fgets(s,MAXLINE,f)!=NULL)
-    {
-        if (s[0] != '#')
-        {
-            switch (toupper(s[0]))
-            {
+    while (fgets(s,MAXLINE,f)!=NULL) {
+        if (s[0] != '#') {
+            switch (toupper(s[0])) {
                 case 'A':
                     i=0;
                     break;
@@ -43,8 +40,7 @@ void read_dinucleotide_frequencies(float **freq_di, FILE *f)
                     i=3;
                     break;
             }
-            switch (toupper(s[1]))
-            {
+            switch (toupper(s[1])) {
                 case 'A':
                     j=0;
                     break;
@@ -74,16 +70,13 @@ char* random_sequence(int seqlen, float *fdf, float **fdf_di)
 
     char *sequence = (char *) calloc(seqlen+1,sizeof(char));
 
-    for (i=0; i<seqlen; i++)
-    {
+    for (i=0; i<seqlen; i++) {
         s = genrand();
         c = 0;
-        if (i==0)
-        {
+        if (i==0) {
             while (fdf[c]<s) c++;
         }
-        else
-        {
+        else {
             while (fdf_di[strchr(alphabet,sequence[i-1])-alphabet][c]<s) c++;
         }
         sequence[i]=alphabet[c];
@@ -98,8 +91,7 @@ float normal_random_number()
 {
     float u1, u2, v1,v2,s,z;
 
-    do
-    {
+    do {
 
         u1 = genrand();
         u2 = genrand();

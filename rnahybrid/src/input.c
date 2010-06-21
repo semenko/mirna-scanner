@@ -13,8 +13,7 @@ void convert_x()
 {
     int i;
     char c;
-    for (i=0; i<=m; i++)
-    {
+    for (i=0; i<=m; i++) {
         c=x[i];
         if      (c=='a' || c=='A') x[i]=A;
         else if (c=='c' || c=='C') x[i]=C;
@@ -30,8 +29,7 @@ void convert_y()
 {
     int i;
     char c;
-    for (i=0; i<=n; i++)
-    {
+    for (i=0; i<=n; i++) {
         c=y[i];
         if      (c=='a' || c=='A') y[i]=A;
         else if (c=='c' || c=='C') y[i]=C;
@@ -49,8 +47,7 @@ void remove_whitespace(char *sequence)
     int i;
 
     for (i=0; i<len; i++)
-        if (sequence[i]<33)
-    {
+    if (sequence[i]<33) {
         memmove(sequence+i,sequence+i+1,len-i-1);
         len--;
         i--;

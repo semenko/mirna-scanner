@@ -668,16 +668,13 @@ void pp_str_Hybrid(struct str1 l)
     pp_str_Hybrid(((struct str__NTID *)(c->entry))->a1);
     } else
     */
-    if (c->utype == SIGID__NTIDB)
-    {
+    if (c->utype == SIGID__NTIDB) {
         pp_str_Hybrid(((struct str__NTIDB *)(c->entry))->a1);
     } else
-    if (c->utype == SIGID__NTIDC)
-    {
+    if (c->utype == SIGID__NTIDC) {
         pp_str_Hybrid(((struct str__NTIDC *)(c->entry))->a1);
     } else
-    if (c->utype == SIGID__NTIDDT)
-    {
+    if (c->utype == SIGID__NTIDDT) {
         a1 =((struct str__NTIDDT *)(c->entry))->a1;
         r1 = sx(r1,a1-1);
         r2 = one_space(r2);
@@ -685,8 +682,7 @@ void pp_str_Hybrid(struct str1 l)
         r4 = one_space(r4);
         pp_str_Hybrid(((struct str__NTIDDT *)(c->entry))->a3);
     } else
-    if (c->utype == SIGID__NTIDDQ)
-    {
+    if (c->utype == SIGID__NTIDDQ) {
         a2 =((struct str__NTIDDQ *)(c->entry))->a2;
         r1 = one_space(r1);
         r2 = one_space(r2);
@@ -708,8 +704,7 @@ void pp_str_Hybrid(struct str1 l)
     } else
     */
     /* Ulbt */
-    if (c->utype == SIGID_Ulbt)
-    {
+    if (c->utype == SIGID_Ulbt) {
         a1 =((struct str_Ulbt *)(c->entry))->a1;
         a2 =((struct str_Ulbt *)(c->entry))->a2;
         r1 = sx(r1,a1);
@@ -718,8 +713,7 @@ void pp_str_Hybrid(struct str1 l)
         r4 = sy(r4,a2);
         pp_str_Hybrid(((struct str_Ulbt *)(c->entry))->a3);
     } else
-    if (c->utype == SIGID_Eds)
-    {
+    if (c->utype == SIGID_Eds) {
         a1=((struct str_Eds *)(c->entry))->a1;
         a2=((struct str_Eds *)(c->entry))->a2;
         r1 = sx(r1,a1);
@@ -746,8 +740,7 @@ void pp_str_Hybrid(struct str1 l)
           pp_str_Hybrid(((struct str_Edb *)(c->entry))->a3);
     } else
     */
-    if (c->utype == SIGID_Sr)
-    {
+    if (c->utype == SIGID_Sr) {
         a1=((struct str_Sr *)(c->entry))->a1;
         a2=((struct str_Sr *)(c->entry))->a2;
         r1 = one_space(r1);
@@ -756,8 +749,7 @@ void pp_str_Hybrid(struct str1 l)
         r4 = one_space(r4);
         pp_str_Hybrid(((struct str_Sr *)(c->entry))->a3);
     } else
-    if (c->utype == SIGID_Bt)
-    {
+    if (c->utype == SIGID_Bt) {
         a1=((struct str_Bt *)(c->entry))->a1;
         a2=((struct str_Bt *)(c->entry))->a2;
         a3=((struct str_Bt *)(c->entry))->a3;
@@ -772,8 +764,7 @@ void pp_str_Hybrid(struct str1 l)
         r4 = blanks(r4,a3,a4);
         pp_str_Hybrid(((struct str_Bt *)(c->entry))->a6);
     } else
-    if (c->utype == SIGID_Bb)
-    {
+    if (c->utype == SIGID_Bb) {
         a1=((struct str_Bb *)(c->entry))->a1;
         a2=((struct str_Bb *)(c->entry))->a2;
         a3=((struct str_Bb *)(c->entry))->a3;
@@ -790,8 +781,7 @@ void pp_str_Hybrid(struct str1 l)
         r4 = ssy(r4,a4,a5);
         pp_str_Hybrid(((struct str_Bb *)(c->entry))->a6);
     } else
-    if (c->utype == SIGID_Il)
-    {
+    if (c->utype == SIGID_Il) {
         a1=((struct str_Il *)(c->entry))->a1;
         a2=((struct str_Il *)(c->entry))->a2;
         a3=((struct str_Il *)(c->entry))->a3;
@@ -817,16 +807,14 @@ void pp_str_Hybrid(struct str1 l)
 
         pp_str_Hybrid(((struct str_Il *)(c->entry))->a7);
     } else
-    if (c->utype == SIGID_El)
-    {
+    if (c->utype == SIGID_El) {
         a1=((struct str_El *)(c->entry))->a1;
         a2=((struct str_El *)(c->entry))->a2;
         a3=((struct str_El *)(c->entry))->a3;
         a4=((struct str_El *)(c->entry))->a4;
         a5=((struct str_El *)(c->entry))->a5;
         a6=((struct str_El *)(c->entry))->a6;
-        if ((a4-a3) == 0)
-        {
+        if ((a4-a3) == 0) {
             r1 = one_space(r1);
             r1 = blanks(r1,a5,a6);
 
@@ -839,8 +827,7 @@ void pp_str_Hybrid(struct str1 l)
             r4 = one_space(r4);
             r4 = ssy(r4,a5,a6);
         }
-        else
-        {
+        else {
             r1 = one_space(r1);
             r1 = sx(r1,a3+1);
             r1 = blanks2(r1,a5,a6);
@@ -857,8 +844,7 @@ void pp_str_Hybrid(struct str1 l)
             r4 = ssy(r4,a5,a6);
         }
     } else
-    if (c->utype == SIGID_Nil)
-    {
+    if (c->utype == SIGID_Nil) {
         r1[0] = '\0';
         r2[0] = '\0';
         r3[0] = '\0';
@@ -874,8 +860,7 @@ void free_str_Hybrid(struct str_Hybrid *c)
 {
     struct str1 l, l2;
 
-    if (c != NULL)
-    {
+    if (c != NULL) {
         /*
         if (c->utype == SIGID__NTID) {
            l = ((struct str__NTID *)(c->entry))->a1;
@@ -883,26 +868,22 @@ void free_str_Hybrid(struct str_Hybrid *c)
            free(c->entry);
         } else
         */
-        if (c->utype == SIGID__NTIDB)
-        {
+        if (c->utype == SIGID__NTIDB) {
             l = ((struct str__NTIDB *)(c->entry))->a1;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
         } else
-        if (c->utype == SIGID__NTIDC)
-        {
+        if (c->utype == SIGID__NTIDC) {
             l = ((struct str__NTIDC *)(c->entry))->a1;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
         } else
-        if (c->utype == SIGID__NTIDDT)
-        {
+        if (c->utype == SIGID__NTIDDT) {
             l = ((struct str__NTIDDT *)(c->entry))->a3;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
         } else
-        if (c->utype == SIGID__NTIDDQ)
-        {
+        if (c->utype == SIGID__NTIDDQ) {
             l = ((struct str__NTIDDQ *)(c->entry))->a3;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
@@ -920,14 +901,12 @@ void free_str_Hybrid(struct str_Hybrid *c)
         } else
         */
         /* Ulbt */
-        if (c->utype == SIGID_Ulbt)
-        {
+        if (c->utype == SIGID_Ulbt) {
             l = ((struct str_Ulbt *)(c->entry))->a3;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
         } else
-        if (c->utype == SIGID_Eds)
-        {
+        if (c->utype == SIGID_Eds) {
             l = ((struct str_Eds *)(c->entry))->a3;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
@@ -944,36 +923,30 @@ void free_str_Hybrid(struct str_Hybrid *c)
            free(c->entry);
         } else
         */
-        if (c->utype == SIGID_Sr)
-        {
+        if (c->utype == SIGID_Sr) {
             l = ((struct str_Sr *)(c->entry))->a3;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
         } else
-        if (c->utype == SIGID_Bt)
-        {
+        if (c->utype == SIGID_Bt) {
             l = ((struct str_Bt *)(c->entry))->a6;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
         } else
-        if (c->utype == SIGID_Bb)
-        {
+        if (c->utype == SIGID_Bb) {
             l = ((struct str_Bb *)(c->entry))->a6;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
         } else
-        if (c->utype == SIGID_Il)
-        {
+        if (c->utype == SIGID_Il) {
             l = ((struct str_Il *)(c->entry))->a7;
             free_str_Hybrid(l.alg_enum);
             free(c->entry);
         } else
-        if (c->utype == SIGID_El)
-        {
+        if (c->utype == SIGID_El) {
             free(c->entry);
         } else
-        if (c->utype == SIGID_Nil)
-        {
+        if (c->utype == SIGID_Nil) {
             free(c->entry);
         }
     }
@@ -995,20 +968,16 @@ struct str1 build_str_Hybrid(struct str1 cl)
       ((struct str__NTID *)(c->entry))->a1 = (*((struct str__NTID *)(c->entry))->f1)(((struct str__NTID *)(c->entry))->i11, ((struct str__NTID *)(c->entry))->j11, ((struct str__NTID *)(c->entry))->i21, ((struct str__NTID *)(c->entry))->j21);
     } else
     */
-    if (c->utype == SIGID__NTIDB)
-    {
+    if (c->utype == SIGID__NTIDB) {
         ((struct str__NTIDB *)(c->entry))->a1 = (*((struct str__NTIDB *)(c->entry))->f1)(((struct str__NTIDB *)(c->entry))->i11, ((struct str__NTIDB *)(c->entry))->j11, ((struct str__NTIDB *)(c->entry))->i21, ((struct str__NTIDB *)(c->entry))->j21);
     } else
-    if (c->utype == SIGID__NTIDC)
-    {
+    if (c->utype == SIGID__NTIDC) {
         ((struct str__NTIDC *)(c->entry))->a1 = (*((struct str__NTIDC *)(c->entry))->f1)(((struct str__NTIDC *)(c->entry))->i11, ((struct str__NTIDC *)(c->entry))->j11, ((struct str__NTIDC *)(c->entry))->i21, ((struct str__NTIDC *)(c->entry))->j21);
     } else
-    if (c->utype == SIGID__NTIDDT)
-    {
+    if (c->utype == SIGID__NTIDDT) {
         ((struct str__NTIDDT *)(c->entry))->a3 = (*((struct str__NTIDDT *)(c->entry))->f1)(((struct str__NTIDDT *)(c->entry))->i11, ((struct str__NTIDDT *)(c->entry))->j11, ((struct str__NTIDDT *)(c->entry))->i21, ((struct str__NTIDDT *)(c->entry))->j21);
     } else
-    if (c->utype == SIGID__NTIDDQ)
-    {
+    if (c->utype == SIGID__NTIDDQ) {
         ((struct str__NTIDDQ *)(c->entry))->a3 = (*((struct str__NTIDDQ *)(c->entry))->f1)(((struct str__NTIDDQ *)(c->entry))->i11, ((struct str__NTIDDQ *)(c->entry))->j11, ((struct str__NTIDDQ *)(c->entry))->i21, ((struct str__NTIDDQ *)(c->entry))->j21);
     } else
     /*
@@ -1020,12 +989,10 @@ struct str1 build_str_Hybrid(struct str1 cl)
     } else
     */
     /* Ulbt */
-    if (c->utype == SIGID_Ulbt)
-    {
+    if (c->utype == SIGID_Ulbt) {
         ((struct str_Ulbt *)(c->entry))->a3 = (*((struct str_Ulbt *)(c->entry))->f3)(((struct str_Ulbt *)(c->entry))->i13, ((struct str_Ulbt *)(c->entry))->j13, ((struct str_Ulbt *)(c->entry))->i23, ((struct str_Ulbt *)(c->entry))->j23);
     } else
-    if (c->utype == SIGID_Eds)
-    {
+    if (c->utype == SIGID_Eds) {
         ((struct str_Eds *)(c->entry))->a3 = (*((struct str_Eds *)(c->entry))->f3)(((struct str_Eds *)(c->entry))->i13, ((struct str_Eds *)(c->entry))->j13, ((struct str_Eds *)(c->entry))->i23, ((struct str_Eds *)(c->entry))->j23);
     } else
     /*	
@@ -1036,27 +1003,21 @@ struct str1 build_str_Hybrid(struct str1 cl)
       ((struct str_Edb *)(c->entry))->a3 = (*((struct str_Edb *)(c->entry))->f3)(((struct str_Edb *)(c->entry))->i13, ((struct str_Edb *)(c->entry))->j13, ((struct str_Edb *)(c->entry))->i23, ((struct str_Edb *)(c->entry))->j23);
     } else
     */
-    if (c->utype == SIGID_Sr)
-    {
+    if (c->utype == SIGID_Sr) {
         ((struct str_Sr *)(c->entry))->a3 = (*((struct str_Sr *)(c->entry))->f3)(((struct str_Sr *)(c->entry))->i13, ((struct str_Sr *)(c->entry))->j13, ((struct str_Sr *)(c->entry))->i23, ((struct str_Sr *)(c->entry))->j23);
     } else
-    if (c->utype == SIGID_Bt)
-    {
+    if (c->utype == SIGID_Bt) {
         ((struct str_Bt *)(c->entry))->a6 = (*((struct str_Bt *)(c->entry))->f6)(((struct str_Bt *)(c->entry))->i16, ((struct str_Bt *)(c->entry))->j16, ((struct str_Bt *)(c->entry))->i26, ((struct str_Bt *)(c->entry))->j26);
     } else
-    if (c->utype == SIGID_Bb)
-    {
+    if (c->utype == SIGID_Bb) {
         ((struct str_Bb *)(c->entry))->a6 = (*((struct str_Bb *)(c->entry))->f6)(((struct str_Bb *)(c->entry))->i16, ((struct str_Bb *)(c->entry))->j16, ((struct str_Bb *)(c->entry))->i26, ((struct str_Bb *)(c->entry))->j26);
     } else
-    if (c->utype == SIGID_Il)
-    {
+    if (c->utype == SIGID_Il) {
         ((struct str_Il *)(c->entry))->a7 = (*((struct str_Il *)(c->entry))->f7)(((struct str_Il *)(c->entry))->i17, ((struct str_Il *)(c->entry))->j17, ((struct str_Il *)(c->entry))->i27, ((struct str_Il *)(c->entry))->j27);
     } else
-    if (c->utype == SIGID_El)
-    {
+    if (c->utype == SIGID_El) {
     } else
-    if (c->utype == SIGID_Nil)
-    {
+    if (c->utype == SIGID_Nil) {
     }
     return(cl);
 }
@@ -1087,13 +1048,11 @@ double calc_hybrid(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /* --------------------- v1 = nil <<< tt(uregion, uregion) --------------------- */
-    if (((j1-i1) >= 0) && ((j2-i2) >= 0))
-    {
+    if (((j1-i1) >= 0) && ((j2-i2) >= 0)) {
         v1 = 0;
         /* No iteration neccessary! */
     }
-    else
-    {
+    else {
         v1 = 65000;
     }
     /* --------------------- v1 = nil <<< tt(uregion, uregion) --------------------- */
@@ -1109,30 +1068,24 @@ double calc_hybrid(int i1, int j1, int i2, int j2)
     }
     */
 
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         v2 = 65000;
         int k;
-        for (k=i1; k<j1; k++)
-        {
-            if (tbl_unpaired_left_bot[k][i2] < v2)
-            {
+        for (k=i1; k<j1; k++) {
+            if (tbl_unpaired_left_bot[k][i2] < v2) {
                 v2 = tbl_unpaired_left_bot[k][i2];
             }
         }
     }
-    else
-    {
+    else {
         v2 = 65000;
     }
 
     /* ------------------------------- v3 = p closed ------------------------------- */
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         v3 = tbl_closed[i1][i2];
     }
-    else
-    {
+    else {
         v3 = 65000;
     }
     v4 = v2 < v3 ? v2 : v3;
@@ -1157,13 +1110,11 @@ double calc_hybrid_new(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /* --------------------- v1 = nil <<< tt(uregion, uregion) --------------------- */
-    if (((j1-i1) >= 0) && ((j2-i2) >= 0))
-    {
+    if (((j1-i1) >= 0) && ((j2-i2) >= 0)) {
         v1 = 0;
         /* No iteration neccessary! */
     }
-    else
-    {
+    else {
         v1 = 65000;
     }
     /* --------------------- v1 = nil <<< tt(uregion, uregion) --------------------- */
@@ -1171,32 +1122,26 @@ double calc_hybrid_new(int i1, int j1, int i2, int j2)
 
     /* -------------------------- v2 = p unpaired_left_bot ------------------------- */
 
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         v2 = tbl_unpaired_left_bot[i1][i2];
     }
-    else
-    {
+    else {
         v2 = 65000;
     }
 
     /* ------------------------------- v3 = p closed ------------------------------- */
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         v3 = tbl_closed[i1][i2];
     }
-    else
-    {
+    else {
         v3 = 65000;
     }
 
     /* ------------------------------- v6 = p closed with dangle ------------------- */
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         v6 = tbl_unpaired_dangle[i1][i2];
     }
-    else
-    {
+    else {
         v6 = 65000;
     }
 
@@ -1233,17 +1178,14 @@ void calc_unpaired_left_top(int i1, int j1, int i2, int j2)
 
     /* -------------------------- v2 = p unpaired_left_bot ------------------------- */
 
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && ((i2 < helix_start) || (i2 >= helix_end)))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && ((i2 < helix_start) || (i2 >= helix_end))) {
         v2 = tbl_unpaired_left_bot[i1][i2];
     }
-    else
-    {
+    else {
         v2 = 65000;
     }
     v3 = v1 < v2 ? v1 : v2;
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         tbl_unpaired_left_top[i1][i2] = v3;
     }
 }
@@ -1259,45 +1201,34 @@ void calc_unpaired_dangle(int i1, int j1, int i2, int j2)
     //printf("FOO\n");
     //}
 
-    if( (i1 == 0 && i2 == 0) )
-    {
+    if( (i1 == 0 && i2 == 0) ) {
         tbl_unpaired_dangle[i1][i2] = 65000;
     }
-    else if( i2 == 0 )
-    {
-        if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-        {
-            if( tbl_closed[i1][0] < 65000 )
-            {
+    else if( i2 == 0 ) {
+        if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
+            if( tbl_closed[i1][0] < 65000 ) {
                 //tbl_unpaired_dangle[i1][0] = tbl_closed[i1][0] + dl_energy(i1+1 , i2+1);
                 tbl_unpaired_dangle[i1][0] = tbl_closed[i1][0] + r_dl_energy(i1+1 , i2+1);
             }
-            else
-            {
+            else {
                 tbl_unpaired_dangle[i1][0] = 65000;
             }
         }
     }
-    else if( i1 == 0 )
-    {
-        if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-        {
-            if( tbl_closed[0][i2] < 65000 )
-            {
+    else if( i1 == 0 ) {
+        if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
+            if( tbl_closed[0][i2] < 65000 ) {
                 //tbl_unpaired_dangle[0][i2] = tbl_closed[0][i2] + dr_energy(i1+1 , i2+1);
                 tbl_unpaired_dangle[0][i2] = tbl_closed[0][i2] + r_dr_energy(i1+1 , i2+1);
 
             }
-            else
-            {
+            else {
                 tbl_unpaired_dangle[0][i2] = 65000;
             }
         }
     }
-    else
-    {
-        if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-        {
+    else {
+        if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
             tbl_unpaired_dangle[i1][i2] = 65000;
         }
     }
@@ -1327,25 +1258,21 @@ void calc_unpaired_left_bot(int i1, int j1, int i2, int j2)
     /* ---------------------------------- finished --------------------------------- */
 
     /* new type for skipping leading target base and miRNA base at the same time */
-    if (((j1-i1) >= 2) && ((j2-i2) >= 2) && ((i2 < helix_start) || (i2 >= helix_end)))
-    {
+    if (((j1-i1) >= 2) && ((j2-i2) >= 2) && ((i2 < helix_start) || (i2 >= helix_end))) {
         v1 = tbl_unpaired_left_bot[i1+1][i2+1];;
     }
-    else
-    {
+    else {
         v1 = 65000;
     }
 
     /* ---------------------------------- start of --------------------------------- */
     /* ---------------- v2 = eds <<< (tt(lbase, lbase)) ~~~ p closed --------------- */
-    if (((j1-i1) >= 2) && ((j2-i2) >= 2) && compl(x[i1+2],y[i2+2]) && ((i2 < helix_start) || (i2 >= helix_end)))
-    {
+    if (((j1-i1) >= 2) && ((j2-i2) >= 2) && compl(x[i1+2],y[i2+2]) && ((i2 < helix_start) || (i2 >= helix_end))) {
         //v2 = (tbl_closed[i1+1][i2+1] + dl_energy((i1+1) + 1, (i2+1) + 1)) + dr_energy((i1+1) + 1, (i2+1) + 1);
         v2 = (tbl_closed[i1+1][i2+1] + r_dl_energy((i1+1) + 1, (i2+1) + 1)) + r_dr_energy((i1+1) + 1, (i2+1) + 1);
         /* No iteration neccessary! */
     }
-    else
-    {
+    else {
         v2 = 65000;
     }
     /* ---------------- v2 = eds <<< (tt(lbase, lbase)) ~~~ p closed --------------- */
@@ -1390,8 +1317,7 @@ void calc_unpaired_left_bot(int i1, int j1, int i2, int j2)
     v6 = v2 < v5 ? v2 : v5;
     v7 = v1 < v6 ? v1 : v6;
     /* ------------------------- assign table entry result ------------------------- */
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         tbl_unpaired_left_bot[i1][i2] = v7;
     }
 }
@@ -1406,21 +1332,17 @@ void calc_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /* - v1 = sr <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ p closed - */
-    if (((j1-i1) >= 2) && ((j2-i2) >= 2))
-    {
-        if (compl(x[i1+1], y[i2+1]))
-        {
+    if (((j1-i1) >= 2) && ((j2-i2) >= 2)) {
+        if (compl(x[i1+1], y[i2+1])) {
             //v1 = sr_energy(i1+1, i2+1) + tbl_closed[i1+1][i2+1];
             v1 = r_sr_energy(i1+1, i2+1) + tbl_closed[i1+1][i2+1];
             /* No iteration neccessary! */
         }
-        else
-        {
+        else {
             v1 = 65000;
         }
     }
-    else
-    {
+    else {
         v1 = 65000;
     }
     /* - v1 = sr <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ p closed - */
@@ -1428,13 +1350,11 @@ void calc_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v3 = bt <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, empty) `with` (sizeTT 1 15 0 0)) ~~~ p closed  */
-    if (((j1-i1) >= 3) && ((j2-i2) >= 2) && compl(x[i1+1], y[i2+1]) && ((i2 < helix_start) || (i2 >= helix_end-1)))
-    {
+    if (((j1-i1) >= 3) && ((j2-i2) >= 2) && compl(x[i1+1], y[i2+1]) && ((i2 < helix_start) || (i2 >= helix_end-1))) {
         double v2;
         int k;
         v3 = 65000;
-        for (k=i1+2; k<=min(i1+bloop_upper_limit+1, j1-1); k++)
-        {
+        for (k=i1+2; k<=min(i1+bloop_upper_limit+1, j1-1); k++) {
             if (x[k]==X)
                 break;
             //v2 = (tbl_closed[k][i2+1] + bl_stacking((k) - (i1+1), 0, i1+1, i2+1)) + bl_ent((k) - (i1+1));
@@ -1443,8 +1363,7 @@ void calc_closed(int i1, int j1, int i2, int j2)
             v3 = v2 < v3 ? v2 : v3;
         }
     }
-    else
-    {
+    else {
         v3 = 65000;
     }
     /*  v3 = bt <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, empty) `with` (sizeTT 1 15 0 0)) ~~~ p closed  */
@@ -1452,13 +1371,11 @@ void calc_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v5 = bb <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(empty, region) `with` (sizeTT 0 0 1 15)) ~~~ p closed  */
-    if (((j1-i1) >= 2) && ((j2-i2) >= 3) & compl(x[i1+1], y[i2+1]))
-    {
+    if (((j1-i1) >= 2) && ((j2-i2) >= 3) & compl(x[i1+1], y[i2+1])) {
         double v4;
         int k2;
         v5 = 65000;
-        for (k2=i2+2; k2<=min(i2+bloop_upper_limit+1, j2-1); k2++)
-        {
+        for (k2=i2+2; k2<=min(i2+bloop_upper_limit+1, j2-1); k2++) {
             if ((k2 > helix_start) && (k2 <= helix_end))
                 break;
             //v4 = (tbl_closed[i1+1][k2] + bl_stacking(0, (k2) - (i2+1), i1+1, i2+1)) + bl_ent((k2) - (i2+1));
@@ -1467,8 +1384,7 @@ void calc_closed(int i1, int j1, int i2, int j2)
             v5 = v4 < v5 ? v4 : v5;
         }
     }
-    else
-    {
+    else {
         v5 = 65000;
     }
     /*  v5 = bb <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(empty, region) `with` (sizeTT 0 0 1 15)) ~~~ p closed  */
@@ -1477,22 +1393,18 @@ void calc_closed(int i1, int j1, int i2, int j2)
     /* ---------------------------------- start of --------------------------------- */
     /*  v7 = il <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, region) `with` (sizeTT 1 15 1 15)) ~~~ p closed  */
 
-    if (((j1-i1) >= 3) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1]))
-    {
+    if (((j1-i1) >= 3) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1])) {
         double v6, v7b, v7g;
         int k3, k4;
         v7 = 65000;
         /* special internal loops: */
-        for (k3=i1+2; k3<=min(i1+min(3,iloop_upper_limit+1), j1-1); k3++)
-        {
+        for (k3=i1+2; k3<=min(i1+min(3,iloop_upper_limit+1), j1-1); k3++) {
             if (x[k3]==X) break;
 
-            for (k4=i2+2; k4<=min(i2+min(3,iloop_upper_limit+1), j2-1); k4++)
-            {
+            for (k4=i2+2; k4<=min(i2+min(3,iloop_upper_limit+1), j2-1); k4++) {
                 if ((k4 > helix_start) && (i2 < helix_end-1)) break;
 
-                if (compl(x[k3+1],y[k4+1]))
-                {
+                if (compl(x[k3+1],y[k4+1])) {
                     //v6 = do_il_special(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                     v6 = r_do_il_special(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                     /* No iteration neccessary! */
@@ -1504,21 +1416,18 @@ void calc_closed(int i1, int j1, int i2, int j2)
         v7g = 65000;
         v7b = 65000;
 
-        if ((x[k3]!=X))
-        {                        /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
-          double v7c, v7d, v7e, v7f;
+        if ((x[k3]!=X)) {
+                                 /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
+            double v7c, v7d, v7e, v7f;
 
             /* normal internal loops: */
-            for (k3=i1+2; k3<=min(i1+3, j1-1); k3++)
-            {
+            for (k3=i1+2; k3<=min(i1+3, j1-1); k3++) {
                 if (x[k3]==X) break;
 
-                for (k4=i2+4; k4<=min(i2+iloop_upper_limit+1, j2-1); k4++)
-                {
+                for (k4=i2+4; k4<=min(i2+iloop_upper_limit+1, j2-1); k4++) {
                     if ((k4 > helix_start) && (i2 < helix_end-1)) break;
 
-                    if (compl(x[k3+1],y[k4+1]))
-                    {
+                    if (compl(x[k3+1],y[k4+1])) {
                         //v6 = do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                         v6 = r_do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                         /* No iteration neccessary! */
@@ -1531,18 +1440,15 @@ void calc_closed(int i1, int j1, int i2, int j2)
 
             v7c = 65000;
             /* normal internal loops: */
-            if ((x[k3]!=X))
-            {                    /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
-                for (k3=i1+4; k3<=min(i1+iloop_upper_limit+1, j1-1); k3++)
-                {
+            if ((x[k3]!=X)) {
+                                 /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
+                for (k3=i1+4; k3<=min(i1+iloop_upper_limit+1, j1-1); k3++) {
                     if (x[k3]==X) break;
 
-                    for (k4=i2+2; k4<=min(i2+3, j2-1); k4++)
-                    {
+                    for (k4=i2+2; k4<=min(i2+3, j2-1); k4++) {
                         if ((k4 > helix_start) && (i2 < helix_end-1)) break;
 
-                        if (compl(x[k3+1],y[k4+1]))
-                        {
+                        if (compl(x[k3+1],y[k4+1])) {
                             //v6 = do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                             v6 = r_do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                             /* No iteration neccessary! */
@@ -1557,25 +1463,19 @@ void calc_closed(int i1, int j1, int i2, int j2)
 
                 v7d = 65000;
                 /* normal internal loops: */
-                if ((x[k3]!=X))
-                {                /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
+                if (((x[k3]!=X)) && !((k4 > helix_start) && (i2 < helix_end-1))) {
                     int max1 = min(i1+iloop_upper_limit+1, j1-1);
-                    for (k3=i1+4; k3<=max1; k3++)
-                    {
+                    for (k3=i1+4; k3<=max1; k3++) {
                         if (x[k3]==X) break;
-                        if ((k4 > helix_start) && (i2 < helix_end-1)) {
-                          int max2 = min(i2+iloop_upper_limit+1, j2-1);
-                          for (k4=i2+4; k4<=max2; k4++)
-                            {
-                              // if ((k4 > helix_start) && (i2 < helix_end-1)) break;
-                              
-                              if (compl(x[k3+1],y[k4+1]))
-                                {
-                                  //v6 = do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
-                                  v6 = r_do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
-                                  /* No iteration neccessary! */
-                                  v7d = v6 < v7d ? v6 : v7d;
-                                }
+                        int max2 = min(i2+iloop_upper_limit+1, j2-1);
+                        for (k4=i2+4; k4<=max2; k4++) {
+                            // if ((k4 > helix_start) && (i2 < helix_end-1)) break;
+
+                            if (compl(x[k3+1],y[k4+1])) {
+                                //v6 = do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
+                                v6 = r_do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
+                                /* No iteration neccessary! */
+                                v7d = v6 < v7d ? v6 : v7d;
                             }
                         }
                     }
@@ -1592,8 +1492,7 @@ void calc_closed(int i1, int j1, int i2, int j2)
         v7 = v7g < v7 ? v7g : v7;
     }
 
-    else
-    {
+    else {
         v7 = 65000;
     }
     /*  v7 = il <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, region) `with` (sizeTT 1 15 1 15)) ~~~ p closed  */
@@ -1601,21 +1500,17 @@ void calc_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v8 = el <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(uregion, uregion))  */
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && (j1==i1+1 || x[i1+2]!='X') && ((i2 >= helix_end-1) || (helix_end > j2)))
-    {
-        if (compl(x[i1+1], y[i2+1]))
-        {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && (j1==i1+1 || x[i1+2]!='X') && ((i2 >= helix_end-1) || (helix_end > j2))) {
+        if (compl(x[i1+1], y[i2+1])) {
             //v8 = ((((j1) - (i1+1)) > 0) ? dli_energy(i1+1, i2+1) : 0) + ((((j2) - (i2+1)) > 0) ? dri_energy(i1+1, i2+1) : 0);
             v8 = ((((j1) - (i1+1)) > 0) ? r_dli_energy(i1+1, i2+1) : 0) + ((((j2) - (i2+1)) > 0) ? r_dri_energy(i1+1, i2+1) : 0);
             /* No iteration neccessary! */
         }
-        else
-        {
+        else {
             v8 = 65000;
         }
     }
-    else
-    {
+    else {
         v8 = 65000;
     }
     /*  v8 = el <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(uregion, uregion))  */
@@ -1626,8 +1521,7 @@ void calc_closed(int i1, int j1, int i2, int j2)
     v11 = v3 < v10 ? v3 : v10;
     v12 = v1 < v11 ? v1 : v11;
     /* ------------------------- assign table entry result ------------------------- */
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         tbl_closed[i1][i2] = v12;
     }
 }
@@ -1767,14 +1661,12 @@ struct str1 back_hybrid_new(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /* --------------------- v1 = nil <<< tt(uregion, uregion) --------------------- */
-    if (((j1-i1) >= 0) && ((j2-i2) >= 0))
-    {
+    if (((j1-i1) >= 0) && ((j2-i2) >= 0)) {
         v1.alg_mfe = 0;
         v1.alg_enum = new_Nil(i1, j1, i2, j2);
         /* No iteration neccessary! */
     }
-    else
-    {
+    else {
         v1.alg_mfe = 65000;
         v1.alg_enum = NULL;
     }
@@ -1788,13 +1680,11 @@ struct str1 back_hybrid_new(int i1, int j1, int i2, int j2)
     /* we need to wrap the result of unpaired_left_top into a single list element.           */
     /* +------------------------------------------------------------------------------------ */
 
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && ((i2 < helix_start) || (i2 >= helix_end)))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && ((i2 < helix_start) || (i2 >= helix_end))) {
         v2.alg_mfe = tbl_unpaired_left_bot[i1][i2];
         v2.alg_enum = new__NTIDB(back_unpaired_left_bot, i1, j1, i2, j2);
     }
-    else
-    {
+    else {
         v2.alg_mfe = 65000;
         v2.alg_enum = NULL;
     }
@@ -1805,60 +1695,50 @@ struct str1 back_hybrid_new(int i1, int j1, int i2, int j2)
     /* function which yields atomar results. Since we are in list context,           */
     /* we need to wrap the result of closed into a single list element.              */
     /* +---------------------------------------------------------------------------- */
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1))
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
         v3.alg_mfe = tbl_closed[i1][i2];
         v3.alg_enum = new__NTIDC(back_closed, i1, j1, i2, j2);
     }
-    else
-    {
+    else {
         v3.alg_mfe = 65000;
         v3.alg_enum = NULL;
     }
 
     /* ------------------------------- v6 = p closed with dangle ------------------- */
 
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && i2==0 && i1>0)
-    {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && i2==0 && i1>0) {
         v6t.alg_mfe = tbl_unpaired_dangle[i1][i2];
                                  /* dangle for target sequence */
         v6t.alg_enum = new__NTIDDT(i1+1, i2+1, back_dangle, i1, j1, i2, j2);
     }
-    else
-    {
+    else {
         v6t.alg_mfe = 65000;
         v6t.alg_enum = NULL;
     }
 
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && i1 == 0 && i2>0 )
-    {
-        if( ((i2-1) < helix_start) || ((i2-1) >= helix_end) )
-        {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1) && i1 == 0 && i2>0 ) {
+        if( ((i2-1) < helix_start) || ((i2-1) >= helix_end) ) {
             v6q.alg_mfe = tbl_unpaired_dangle[i1][i2];
                                  /* dangle for query sequence */
             v6q.alg_enum = new__NTIDDQ(i1+1, i2+1, back_dangle, i1, j1, i2, j2);
         }
-        else
-        {
+        else {
             v6q.alg_mfe = 65000;
             v6q.alg_enum = NULL;
         }
     }
-    else
-    {
+    else {
         v6q.alg_mfe = 65000;
         v6q.alg_enum = NULL;
     }
 
     /* ---------------------------- v4 = minimum(v2, v3) --------------------------- */
-    if (v2.alg_mfe < v3.alg_mfe)
-    {
+    if (v2.alg_mfe < v3.alg_mfe) {
         gx = i1 + 1;
         v4 = v2;
         free_str_Hybrid(v3.alg_enum);
     }
-    else
-    {
+    else {
         gx = i1 + 1;
         v4 = v3;
         free_str_Hybrid(v2.alg_enum);
@@ -1866,39 +1746,33 @@ struct str1 back_hybrid_new(int i1, int j1, int i2, int j2)
     /*    v4 = v2.alg_mfe < v3.alg_mfe ? v2 : v3; */
 
     /* ---------------------------- v7 = minimum(v4, v6) --------------------------- */
-    if (v6t.alg_mfe < v4.alg_mfe)
-    {
+    if (v6t.alg_mfe < v4.alg_mfe) {
         gx = i1;
         v7 = v6t;
         free_str_Hybrid(v4.alg_enum);
     }
-    else
-    {
+    else {
         v7 = v4;
         free_str_Hybrid(v6t.alg_enum);
     }
 
-    if(v6q.alg_mfe < v7.alg_mfe)
-    {
+    if(v6q.alg_mfe < v7.alg_mfe) {
         gx = 1;
         v8=v6q;
         free_str_Hybrid(v7.alg_enum);
     }
-    else
-    {
+    else {
         v8 = v7;
         free_str_Hybrid(v6q.alg_enum);
     }
 
     /* ---------------------------- v5 = minimum(v1, v4) --------------------------- */
-    if (v1.alg_mfe < v8.alg_mfe)
-    {
+    if (v1.alg_mfe < v8.alg_mfe) {
         gx = 0;
         v5 = v1;
         free_str_Hybrid(v8.alg_enum);
     }
-    else
-    {
+    else {
         v5 = v8;
         free_str_Hybrid(v1.alg_enum);
     }
@@ -1943,28 +1817,24 @@ struct str1 back_unpaired_left_bot(int i1, int j1, int i2, int j2)
     /* ---------------------------------- finished --------------------------------- */
 
     /* new type for skipping leading target base and miRNA base at the same time */
-    if (((j1-i1) >= 2) && ((j2-i2) >= 2) && ((i2 < helix_start) || (i2 >= helix_end)))
-    {
+    if (((j1-i1) >= 2) && ((j2-i2) >= 2) && ((i2 < helix_start) || (i2 >= helix_end))) {
         v1.alg_mfe = tbl_unpaired_left_bot[i1+1][i2+1];
         v1.alg_enum = new_Ulbt(i1+1, i2+1, back_unpaired_left_bot, i1+1, j1, i2+1, j2);
     }
-    else
-    {
+    else {
         v1.alg_mfe = 65000;
         v1.alg_enum = NULL;
     }
 
     /* ---------------------------------- start of --------------------------------- */
     /* ---------------- v2 = eds <<< (tt(lbase, lbase)) ~~~ p closed --------------- */
-    if (((j1-i1) >= 2) && ((j2-i2) >= 2) && compl(x[i1+2],y[i2+2]) && ((i2 < helix_start) || (i2 >= helix_end)))
-    {
+    if (((j1-i1) >= 2) && ((j2-i2) >= 2) && compl(x[i1+2],y[i2+2]) && ((i2 < helix_start) || (i2 >= helix_end))) {
         //v2.alg_mfe = (tbl_closed[i1+1][i2+1] + dl_energy((i1+1) + 1, (i2+1) + 1)) + dr_energy((i1+1) + 1, (i2+1) + 1);
         v2.alg_mfe = (tbl_closed[i1+1][i2+1] + r_dl_energy((i1+1) + 1, (i2+1) + 1)) + r_dr_energy((i1+1) + 1, (i2+1) + 1);
         v2.alg_enum = new_Eds(i1+1, i2+1, back_closed, i1+1, j1, i2+1, j2);
         /* No iteration neccessary! */
     }
-    else
-    {
+    else {
         v2.alg_mfe = 65000;
         v2.alg_enum = NULL;
     }
@@ -2008,37 +1878,31 @@ struct str1 back_unpaired_left_bot(int i1, int j1, int i2, int j2)
     /* ---------------------------------- finished --------------------------------- */
 
     /* ---------------------------- v5 = minimum(v3, v4) --------------------------- */
-    if (v3.alg_mfe < v4.alg_mfe)
-    {
+    if (v3.alg_mfe < v4.alg_mfe) {
         v5 = v3;
         free_str_Hybrid(v4.alg_enum);
     }
-    else
-    {
+    else {
         v5 = v4;
         free_str_Hybrid(v3.alg_enum);
     }
     /*    v5 = v3.alg_mfe < v4.alg_mfe ? v3 : v4; */
     /* ---------------------------- v6 = minimum(v2, v5) --------------------------- */
-    if (v2.alg_mfe < v5.alg_mfe)
-    {
+    if (v2.alg_mfe < v5.alg_mfe) {
         v6 = v2;
         free_str_Hybrid(v5.alg_enum);
     }
-    else
-    {
+    else {
         v6 = v5;
         free_str_Hybrid(v2.alg_enum);
     }
     /*    v6 = v2.alg_mfe < v5.alg_mfe ? v2 : v5; */
     /* ---------------------------- v7 = minimum(v1, v6) --------------------------- */
-    if (v1.alg_mfe < v6.alg_mfe)
-    {
+    if (v1.alg_mfe < v6.alg_mfe) {
         v7 = v1;
         free_str_Hybrid(v6.alg_enum);
     }
-    else
-    {
+    else {
         v7 = v6;
         free_str_Hybrid(v1.alg_enum);
     }
@@ -2058,23 +1922,19 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /* - v1 = sr <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ p closed - */
-    if (((j1-i1) >= 2) && ((j2-i2) >= 2))
-    {
-        if (compl(x[i1+1], y[i2+1]))
-        {
+    if (((j1-i1) >= 2) && ((j2-i2) >= 2)) {
+        if (compl(x[i1+1], y[i2+1])) {
             //v1.alg_mfe = sr_energy(i1+1, i2+1) + tbl_closed[i1+1][i2+1];
             v1.alg_mfe = r_sr_energy(i1+1, i2+1) + tbl_closed[i1+1][i2+1];
             v1.alg_enum = new_Sr(i1+1, i2+1, back_closed, i1+1, j1, i2+1, j2);
             /* No iteration neccessary! */
         }
-        else
-        {
+        else {
             v1.alg_mfe = 65000;
             v1.alg_enum = NULL;
         }
     }
-    else
-    {
+    else {
         v1.alg_mfe = 65000;
         v1.alg_enum = NULL;
     }
@@ -2083,13 +1943,11 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v3 = bt <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, empty) `with` (sizeTT 1 15 0 0)) ~~~ p closed  */
-    if (((j1-i1) >= 3) && ((j2-i2) >= 2) && compl(x[i1+1], y[i2+1]) && ((i2 < helix_start) || (i2 >= helix_end-1)))
-    {
+    if (((j1-i1) >= 3) && ((j2-i2) >= 2) && compl(x[i1+1], y[i2+1]) && ((i2 < helix_start) || (i2 >= helix_end-1))) {
         v3.alg_mfe = 65000;
         v3.alg_enum = NULL;
         int k;
-        for (k=i1+2; k<=min(i1+bloop_upper_limit+1, j1-1); k++)
-        {
+        for (k=i1+2; k<=min(i1+bloop_upper_limit+1, j1-1); k++) {
             if (x[k]==X)
                 break;
             //v2.alg_mfe = (tbl_closed[k][i2+1] + bl_stacking((k) - (i1+1), 0, i1+1, i2+1)) + bl_ent((k) - (i1+1));
@@ -2097,15 +1955,13 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
             v2.alg_enum = new_Bt(i1+1, i2+1, i1+1, k, i2+1, back_closed, k, j1, i2+1, j2);
             /* No iteration neccessary! */
             /* ------------------------- v3 = minimum(v2, v3) ------------------------ */
-            if (v2.alg_mfe < v3.alg_mfe)
-            {
+            if (v2.alg_mfe < v3.alg_mfe) {
                 free_str_Hybrid(v3.alg_enum);
                 v3 = v2;
             } else free_str_Hybrid(v2.alg_enum);
         }
     }
-    else
-    {
+    else {
         v3.alg_mfe = 65000;
         v3.alg_enum = NULL;
     }
@@ -2114,13 +1970,11 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v5 = bb <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(empty, region) `with` (sizeTT 0 0 1 15)) ~~~ p closed  */
-    if (((j1-i1) >= 2) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1]))
-    {
+    if (((j1-i1) >= 2) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1])) {
         v5.alg_mfe = 65000;
         v5.alg_enum = NULL;
         int k2;
-        for (k2=i2+2; k2<=min(i2+bloop_upper_limit+1, j2-1); k2++)
-        {
+        for (k2=i2+2; k2<=min(i2+bloop_upper_limit+1, j2-1); k2++) {
             if ((k2 > helix_start) && (k2 <= helix_end))
                 break;
             //v4.alg_mfe = (tbl_closed[i1+1][k2] + bl_stacking(0, (k2) - (i2+1), i1+1, i2+1)) + bl_ent((k2) - (i2+1));
@@ -2129,15 +1983,13 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
             /* No iteration neccessary! */
             /* ------------------------- v5 = minimum(v4, v5) ------------------------ */
             /* v5 = v4.alg_mfe < v5.alg_mfe ? v4 : v5; */
-            if (v4.alg_mfe < v5.alg_mfe)
-            {
+            if (v4.alg_mfe < v5.alg_mfe) {
                 free_str_Hybrid(v5.alg_enum);
                 v5 = v4;
             } else free_str_Hybrid(v4.alg_enum);
         }
     }
-    else
-    {
+    else {
         v5.alg_mfe = 65000;
         v5.alg_enum = NULL;
     }
@@ -2146,29 +1998,24 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v7 = il <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, region) `with` (sizeTT 1 15 1 15)) ~~~ p closed  */
-    if (((j1-i1) >= 3) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1]))
-    {
+    if (((j1-i1) >= 3) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1])) {
 
         v7.alg_mfe = 65000;
         v7.alg_enum = NULL;
         /* special internal loops: */
         int k3, k4;
-        for (k3=i1+2; k3<=min(i1+min(3,iloop_upper_limit+1), j1-1); k3++)
-        {
+        for (k3=i1+2; k3<=min(i1+min(3,iloop_upper_limit+1), j1-1); k3++) {
             if (x[k3]==X)
                 break;
-            for (k4=i2+2; k4<=min(i2+min(3,iloop_upper_limit+1), j2-1); k4++)
-            {
+            for (k4=i2+2; k4<=min(i2+min(3,iloop_upper_limit+1), j2-1); k4++) {
                 if ((k4 > helix_start) && (i2 < helix_end-1))
                     break;
-                if (compl(x[k3+1],y[k4+1]))
-                {
+                if (compl(x[k3+1],y[k4+1])) {
                     //v6.alg_mfe = do_il_special(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                     v6.alg_mfe = r_do_il_special(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                     v6.alg_enum = new_Il(i1+1, i2+1, i1+1, k3, i2+1, k4, back_closed, k3, j1, k4, j2);
                     /* No iteration neccessary! */
-                    if (v6.alg_mfe < v7.alg_mfe)
-                    {
+                    if (v6.alg_mfe < v7.alg_mfe) {
                         free_str_Hybrid(v7.alg_enum);
                         v7 = v6;
                     } else free_str_Hybrid(v6.alg_enum);
@@ -2179,26 +2026,21 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
         v7g.alg_enum = NULL;
         v7b.alg_mfe = 65000;
         v7b.alg_enum = NULL;
-        if ((x[k3]!=X))          /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
-        {
+        if ((x[k3]!=X)) {        /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
 
             /* normal internal loops: */
-            for (k3=i1+2; k3<=min(i1+3, j1-1); k3++)
-            {
+            for (k3=i1+2; k3<=min(i1+3, j1-1); k3++) {
                 if (x[k3]==X)
                     break;
-                for (k4=i2+4; k4<=min(i2+iloop_upper_limit+1, j2-1); k4++)
-                {
+                for (k4=i2+4; k4<=min(i2+iloop_upper_limit+1, j2-1); k4++) {
                     if ((k4 > helix_start) && (i2 < helix_end-1))
                         break;
-                    if (compl(x[k3+1],y[k4+1]))
-                    {
+                    if (compl(x[k3+1],y[k4+1])) {
                         //v6.alg_mfe = do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                         v6.alg_mfe = r_do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                         v6.alg_enum = new_Il(i1+1, i2+1, i1+1, k3, i2+1, k4, back_closed, k3, j1, k4, j2);
                         /* No iteration neccessary! */
-                        if (v6.alg_mfe < v7b.alg_mfe)
-                        {
+                        if (v6.alg_mfe < v7b.alg_mfe) {
                             free_str_Hybrid(v7b.alg_enum);
                             v7b = v6;
                         } else free_str_Hybrid(v6.alg_enum);
@@ -2210,25 +2052,20 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
 
             v7c.alg_mfe = 65000;
             v7c.alg_enum = NULL;
-            if ((x[k3]!=X))      /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
-            {
+            if ((x[k3]!=X)) {    /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
 
-                for (k3=i1+4; k3<=min(i1+iloop_upper_limit+1, j1-1); k3++)
-                {
+                for (k3=i1+4; k3<=min(i1+iloop_upper_limit+1, j1-1); k3++) {
                     if (x[k3]==X)
                         break;
-                    for (k4=i2+2; k4<=min(i2+3, j2-1); k4++)
-                    {
+                    for (k4=i2+2; k4<=min(i2+3, j2-1); k4++) {
                         if ((k4 > helix_start) && (i2 < helix_end-1))
                             break;
-                        if (compl(x[k3+1],y[k4+1]))
-                        {
+                        if (compl(x[k3+1],y[k4+1])) {
                             //v6.alg_mfe = do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                             v6.alg_mfe = r_do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                             v6.alg_enum = new_Il(i1+1, i2+1, i1+1, k3, i2+1, k4, back_closed, k3, j1, k4, j2);
                             /* No iteration neccessary! */
-                            if (v6.alg_mfe < v7c.alg_mfe)
-                            {
+                            if (v6.alg_mfe < v7c.alg_mfe) {
                                 free_str_Hybrid(v7c.alg_enum);
                                 v7c = v6;
                             } else free_str_Hybrid(v6.alg_enum);
@@ -2241,26 +2078,21 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
 
             v7d.alg_mfe = 65000;
             v7d.alg_enum = NULL;
-            if ((x[k3]!=X))      /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
-            {
+            if ((x[k3]!=X)) {    /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
 
                 /* normal internal loops: */
-                for (k3=i1+4; k3<=min(i1+iloop_upper_limit+1, j1-1); k3++)
-                {
+                for (k3=i1+4; k3<=min(i1+iloop_upper_limit+1, j1-1); k3++) {
                     if (x[k3]==X)
                         break;
-                    for (k4=i2+4; k4<=min(i2+iloop_upper_limit+1, j2-1); k4++)
-                    {
+                    for (k4=i2+4; k4<=min(i2+iloop_upper_limit+1, j2-1); k4++) {
                         if ((k4 > helix_start) && (i2 < helix_end-1))
                             break;
-                        if (compl(x[k3+1],y[k4+1]))
-                        {
+                        if (compl(x[k3+1],y[k4+1])) {
                             //v6.alg_mfe = do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                             v6.alg_mfe = r_do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
                             v6.alg_enum = new_Il(i1+1, i2+1, i1+1, k3, i2+1, k4, back_closed, k3, j1, k4, j2);
                             /* No iteration neccessary! */
-                            if (v6.alg_mfe < v7d.alg_mfe)
-                            {
+                            if (v6.alg_mfe < v7d.alg_mfe) {
                                 free_str_Hybrid(v7d.alg_enum);
                                 v7d = v6;
                             } else free_str_Hybrid(v6.alg_enum);
@@ -2272,50 +2104,41 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
 
             }
 
-            if (v7b.alg_mfe < v7c.alg_mfe)
-            {
+            if (v7b.alg_mfe < v7c.alg_mfe) {
                 free_str_Hybrid(v7c.alg_enum);
                 v7e = v7b;
             }
-            else
-            {
+            else {
                 free_str_Hybrid(v7b.alg_enum);
                 v7e = v7c;
             }
 
-            if (v7e.alg_mfe < v7d.alg_mfe)
-            {
+            if (v7e.alg_mfe < v7d.alg_mfe) {
                 free_str_Hybrid(v7d.alg_enum);
                 v7f = v7e;
             }
-            else
-            {
+            else {
                 free_str_Hybrid(v7e.alg_enum);
                 v7f = v7d;
             }
 
-            if (v7g.alg_mfe < v7f.alg_mfe)
-            {
+            if (v7g.alg_mfe < v7f.alg_mfe) {
                 free_str_Hybrid(v7f.alg_enum);
             }
-            else
-            {
+            else {
                 free_str_Hybrid(v7g.alg_enum);
                 v7g = v7f;
             }
         }
-        if (v7.alg_mfe < v7g.alg_mfe)
-        {
+        if (v7.alg_mfe < v7g.alg_mfe) {
             free_str_Hybrid(v7g.alg_enum);
         }
-        else
-        {
+        else {
             free_str_Hybrid(v7.alg_enum);
             v7 = v7g;
         }
     }
-    else
-    {
+    else {
         v7.alg_mfe = 65000;
         v7.alg_enum = NULL;
     }
@@ -2324,23 +2147,19 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v8 = el <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(uregion, uregion))  */
-    if (((j1-i1) >= 1) && ((j2-i2) >= 1)  && (j1==i1+1 || x[i1+2]!='X') && ((i2 >= helix_end-1) || (helix_end > j2)))
-    {
-        if (compl(x[i1+1], y[i2+1]))
-        {
+    if (((j1-i1) >= 1) && ((j2-i2) >= 1)  && (j1==i1+1 || x[i1+2]!='X') && ((i2 >= helix_end-1) || (helix_end > j2))) {
+        if (compl(x[i1+1], y[i2+1])) {
             //v8.alg_mfe = ((((j1) - (i1+1)) > 0) ? dli_energy(i1+1, i2+1) : 0) + ((((j2) - (i2+1)) > 0) ? dri_energy(i1+1, i2+1) : 0);
             v8.alg_mfe = ((((j1) - (i1+1)) > 0) ? r_dli_energy(i1+1, i2+1) : 0) + ((((j2) - (i2+1)) > 0) ? r_dri_energy(i1+1, i2+1) : 0);
             v8.alg_enum = new_El(i1+1, i2+1, i1+1, j1, i2+1, j2);
             /* No iteration neccessary! */
         }
-        else
-        {
+        else {
             v8.alg_mfe = 65000;
             v8.alg_enum = NULL;
         }
     }
-    else
-    {
+    else {
         v8.alg_mfe = 65000;
         v8.alg_enum = NULL;
     }
@@ -2348,52 +2167,44 @@ struct str1 back_closed(int i1, int j1, int i2, int j2)
     /* ---------------------------------- finished --------------------------------- */
 
     /* ---------------------------- v9 = minimum(v7, v8) --------------------------- */
-    if (v7.alg_mfe < v8.alg_mfe)
-    {
+    if (v7.alg_mfe < v8.alg_mfe) {
         v9 = v7;
         free_str_Hybrid(v8.alg_enum);
     }
-    else
-    {
+    else {
         v9 = v8;
         free_str_Hybrid(v7.alg_enum);
     }
     /*    v9 = v7.alg_mfe < v8.alg_mfe ? v7 : v8; */
 
     /* --------------------------- v10 = minimum(v5, v9) --------------------------- */
-    if (v5.alg_mfe < v9.alg_mfe)
-    {
+    if (v5.alg_mfe < v9.alg_mfe) {
         v10 = v5;
         free_str_Hybrid(v9.alg_enum);
     }
-    else
-    {
+    else {
         v10 = v9;
         free_str_Hybrid(v5.alg_enum);
     }
     /*    v10 = v5.alg_mfe < v9.alg_mfe ? v5 : v9; */
 
     /* --------------------------- v11 = minimum(v3, v10) -------------------------- */
-    if (v3.alg_mfe < v10.alg_mfe)
-    {
+    if (v3.alg_mfe < v10.alg_mfe) {
         v11 = v3;
         free_str_Hybrid(v10.alg_enum);
     }
-    else
-    {
+    else {
         v11 = v10;
         free_str_Hybrid(v3.alg_enum);
     }
     /*    v11 = v3.alg_mfe < v10.alg_mfe ? v3 : v10; */
 
     /* --------------------------- v12 = minimum(v1, v11) -------------------------- */
-    if (v1.alg_mfe < v11.alg_mfe)
-    {
+    if (v1.alg_mfe < v11.alg_mfe) {
         v12 = v1;
         free_str_Hybrid(v11.alg_enum);
     }
-    else
-    {
+    else {
         v12 = v11;
         free_str_Hybrid(v1.alg_enum);
     }
@@ -2415,32 +2226,28 @@ void tableAlloc(int m, int n)
     /* --- memory allocation for tbl_unpaired_left_bot, yield size: ((1,m),(1,n)) -- */
     dim1 = m-1;
     tbl_unpaired_left_bot=(double **) calloc(dim1+1, sizeof(double *));
-    for (i=0; i<=dim1; i++)
-    {
+    for (i=0; i<=dim1; i++) {
         dim2 = n-1;
         tbl_unpaired_left_bot[i]=(double *) calloc(dim2+1, sizeof(double));
     }
     /* -------- memory allocation for tbl_closed, yield size: ((1,m),(1,n)) -------- */
     dim1 = m-1;
     tbl_closed=(double **) calloc(dim1+1, sizeof(double *));
-    for (i=0; i<=dim1; i++)
-    {
+    for (i=0; i<=dim1; i++) {
         dim2 = n-1;
         tbl_closed[i]=(double *) calloc(dim2+1, sizeof(double));
     }
     /* --- memory allocation for tbl_unpaired_left_top, yield size: ((1,m),(1,n)) -- */
     dim1 = m-1;
     tbl_unpaired_left_top=(double **) calloc(dim1+1, sizeof(double *));
-    for (i=0; i<=dim1; i++)
-    {
+    for (i=0; i<=dim1; i++) {
         dim2 = n-1;
         tbl_unpaired_left_top[i]=(double *) calloc(dim2+1, sizeof(double));
     }
     /* --- memory allocation for tbl_unpaired_dangle, yield size: ((1,m),(1,n)) -- */
     dim1 = m-1;
     tbl_unpaired_dangle=(double **) calloc(dim1+1, sizeof(double *));
-    for (i=0; i<=dim1; i++)
-    {
+    for (i=0; i<=dim1; i++) {
         dim2 = n-1;
         tbl_unpaired_dangle[i]=(double *) calloc(dim2+1, sizeof(double));
     }
@@ -2454,10 +2261,8 @@ void print_dp_matrix( double **table_name, int m, int n )
 {
     int i, j;
 
-    for (j=0; j<n; j++)
-    {
-        for (i=0; i<m; i++)
-        {
+    for (j=0; j<n; j++) {
+        for (i=0; i<m; i++) {
             printf ("%f\t", table_name[i][j]);
         }
 
@@ -2472,13 +2277,11 @@ int second_from_the_last_utype(struct str1 str)
 
     c = str.alg_enum;
 
-    if(c->utype == SIGID__NTIDB)
-    {
+    if(c->utype == SIGID__NTIDB) {
         c1 = (((struct str__NTIDB *)(c->entry))->a1).alg_enum;
     } else
     if
-        (c->utype == SIGID__NTIDC)
-    {
+    (c->utype == SIGID__NTIDC) {
         c1 = (((struct str__NTIDC *)(c->entry))->a1).alg_enum;
     }
 
@@ -2512,20 +2315,16 @@ void print_str_Hybrid(struct str_Hybrid *c)
         print_str1( ((struct str__NTID *)(c->entry))->a1 );
     } else
     */
-    if (c->utype == SIGID__NTIDB)
-    {
+    if (c->utype == SIGID__NTIDB) {
         print_str1( ((struct str__NTIDB *)(c->entry))->a1 );
     } else
-    if (c->utype == SIGID__NTIDC)
-    {
+    if (c->utype == SIGID__NTIDC) {
         print_str1( ((struct str__NTIDC *)(c->entry))->a1 );
     } else
-    if (c->utype == SIGID__NTIDDT)
-    {
+    if (c->utype == SIGID__NTIDDT) {
         print_str1( ((struct str__NTIDDT *)(c->entry))->a3 );
     } else
-    if (c->utype == SIGID__NTIDDQ)
-    {
+    if (c->utype == SIGID__NTIDDQ) {
         print_str1( ((struct str__NTIDDQ *)(c->entry))->a3 );
     } else
     /*	
@@ -2536,12 +2335,10 @@ void print_str_Hybrid(struct str_Hybrid *c)
          print_str1( ((struct str_Ulb *)(c->entry))->a3 );
     } else
     */
-    if (c->utype == SIGID_Ulbt)
-    {
+    if (c->utype == SIGID_Ulbt) {
         print_str1( ((struct str_Ulbt *)(c->entry))->a3 );
     } else
-    if (c->utype == SIGID_Eds)
-    {
+    if (c->utype == SIGID_Eds) {
         print_str1( ((struct str_Eds *)(c->entry))->a3 );
     } else
     /*	
@@ -2552,27 +2349,21 @@ void print_str_Hybrid(struct str_Hybrid *c)
          print_str1( ((struct str_Edb *)(c->entry))->a3 );
     } else
     */
-    if (c->utype == SIGID_Sr)
-    {
+    if (c->utype == SIGID_Sr) {
         print_str1( ((struct str_Sr *)(c->entry))->a3 );
     } else
-    if (c->utype == SIGID_Bt)
-    {
+    if (c->utype == SIGID_Bt) {
         print_str1( ((struct str_Bt *)(c->entry))->a6 );
     } else
-    if (c->utype == SIGID_Bb)
-    {
+    if (c->utype == SIGID_Bb) {
         print_str1( ((struct str_Bb *)(c->entry))->a6 );
     } else
-    if (c->utype == SIGID_Il)
-    {
+    if (c->utype == SIGID_Il) {
         print_str1( ((struct str_Il *)(c->entry))->a7 );
     } else
-    if (c->utype == SIGID_El)
-    {
+    if (c->utype == SIGID_El) {
     } else
-    if (c->utype == SIGID_Nil)
-    {
+    if (c->utype == SIGID_Nil) {
     }
 }
 
@@ -2623,10 +2414,8 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
        for (iterate=1; iterate && (!bflag || hit_count<hit_number); )
        {
     */
-    for (i1=m-1; i1>=0; i1--)
-    {
-        for (i2=n-1; i2>=0; i2--)
-        {
+    for (i1=m-1; i1>=0; i1--) {
+        for (i2=n-1; i2>=0; i2--) {
             calc_unpaired_left_bot(i1, m, i2, n);
             calc_closed           (i1, m, i2, n);
             /*calc_unpaired_left_top(i1, m, i2, n);*/
@@ -2648,8 +2437,7 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
     print_dp_matrix( tbl_unpaired_dangle, m, n );
     */
 
-    for (k=0; k<m; k++)
-    {
+    for (k=0; k<m; k++) {
         //for(j=0; j<n; j++)
 
         j=0;
@@ -2668,8 +2456,7 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
             normalised_energy = v2/log(m*n);
             pvalue = 1-exp(-exp(-(-normalised_energy-xi)/theta));
 
-            if ((!eflag || v2 <= energy_cutoff) && (!pflag || pvalue <= pvalue_cutoff) )
-            {
+            if ((!eflag || v2 <= energy_cutoff) && (!pflag || pvalue <= pvalue_cutoff) ) {
 
                 //printf ("FOO\n");
                 l = back_hybrid_new(k, m, j, n);
@@ -2726,12 +2513,10 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
 
                 //printf ("%d\t%d\t%d\t%d\n", sftlu[k], lu[k], sftlu[k-1], lu[k-1]);
 
-                if (compact_output)
-                {
+                if (compact_output) {
                     printf("%s:%d:%s:%d:%.1f:%.6f:%d:%s:%s:%s:%s\n",target_ac,m,query_ac,n,v2,pvalue,gx,t1,t2,t3,t4);
                 }
-                else
-                {
+                else {
                     printf("target: %s\n", target_ac);
                     printf("length: %d\n", m);
                     printf("miRNA : %s\n", query_ac);
@@ -2749,8 +2534,8 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
                     printf("\n");
                 }
 
-                if (gflag)
-                {                /* plot hybridisation */
+                if (gflag) {
+                                 /* plot hybridisation */
                     ali_length = strlen(t1);
 
                     conc_seq    = (char *) calloc(4 * ali_length +3 + 1,sizeof(char));
@@ -2759,16 +2544,13 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
                     /* 	make dot-parantheses notation: */
 
                     k1 = 0;
-                    for (k2=0; k2<ali_length; k2++)
-                    {
-                        if (t1[k2]!=' ')
-                        {
+                    for (k2=0; k2<ali_length; k2++) {
+                        if (t1[k2]!=' ') {
                             conc_seq[k1]=t1[k2];
                             conc_struct[k1]='.';
                             k1++;
                         }
-                        else if (t2[k2]!=' ')
-                        {
+                        else if (t2[k2]!=' ') {
                             conc_seq[k1]=t2[k2];
                             conc_struct[k1]='(';
                             k1++;
@@ -2782,16 +2564,13 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
                     conc_struct[k1+2]='.';
                     k1+=3;
                     sepPos = k1;
-                    for (k2=ali_length-1; k2>=0; k2--)
-                    {
-                        if (t4[k2]!=' ')
-                        {
+                    for (k2=ali_length-1; k2>=0; k2--) {
+                        if (t4[k2]!=' ') {
                             conc_seq[k1]=t4[k2];
                             conc_struct[k1]='.';
                             k1++;
                         }
-                        else if (t3[k2]!=' ')
-                        {
+                        else if (t3[k2]!=' ') {
                             conc_seq[k1]=t3[k2];
                             conc_struct[k1]=')';
                             k1++;
@@ -2806,8 +2585,7 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
                     sprintf(hitcount_str,"%d",hit_count);
                     filename = (char *) calloc(strlen(target_ac)+strlen(query_ac)+strlen(hitcount_str)+7, sizeof(char));
 
-                    if (plot_format==PSPLOT || plot_format==ALLPLOT)
-                    {
+                    if (plot_format==PSPLOT || plot_format==ALLPLOT) {
                         strcpy(filename,target_ac);
                         strcat(filename,"_");
                         strcat(filename,query_ac);
@@ -2819,8 +2597,7 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
                         hybridPlot(conc_seq,conc_struct,v2,sepPos,filename,0,PSPLOT);
                         #endif
                     }
-                    if (plot_format==PNGPLOT || plot_format==ALLPLOT)
-                    {
+                    if (plot_format==PNGPLOT || plot_format==ALLPLOT) {
                         strcpy(filename,target_ac);
                         strcat(filename,"_");
                         strcat(filename,query_ac);
@@ -2832,8 +2609,7 @@ void mainloop(int bflag, int hit_number, int eflag, float energy_cutoff, int pfl
                         hybridPlot(conc_seq,conc_struct,v2,sepPos,filename,0,PNGPLOT);
                         #endif
                     }
-                    if (plot_format==JPGPLOT || plot_format==ALLPLOT)
-                    {
+                    if (plot_format==JPGPLOT || plot_format==ALLPLOT) {
                         strcpy(filename,target_ac);
                         strcat(filename,"_");
                         strcat(filename,query_ac);
