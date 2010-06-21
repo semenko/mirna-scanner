@@ -38,14 +38,14 @@ class RNAHybridError(Exception):
 
 ### ---------------------------------------------
 
-def rnahybrid(nocache, organism_flag, entrez_geneid, utr_seq, mirna_query):
+def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
     """ Execute RNAhybrid.
     
     Returns:
       Results set either from cache or a de-novo run of RNAhybrid.
     """
 
-    cacheDir = mirna_query + '/' + str(entrez_geneid) + '/' + organism_flag + '/'
+    cacheDir = mirna_query + '/' + str(entrez_geneid) + '/' + species + '/'
     cacheKey = str(zlib.adler32(utr_seq))
 
     if not nocache:
@@ -153,7 +153,7 @@ def main():
         assert(re.match("^[AUTGCautgc]*$", args[-1]))
 
 
-    # Organisms
+    # Species
     # Hs = Human
     # Pt = Chimp
     # Cf = Dog
@@ -161,18 +161,19 @@ def main():
     # Gg = Chicken
     # Mm = Mouse
     
-    # This is a dict mapping short organisms ('Hs','Cf') to long titles
+    # This is a dict mapping short species tags ('Hs','Cf') to long titles
     # in the MIRBASE_MIR_ORTHOLOG database.
-    organisms = {'Hs': '',
-                 'Pt': '',
-                 'Cf': '',
-                 'Rn': '',
-                 'Gg': '',
-                 'Mm': ''}
+    speciesMap = {'Hs': '',
+                  'Pt': '',
+                  'Cf': '',
+                  'Rn': '',
+                  'Gg': '',
+                  'Mm': ''}
 
     # Either one or all species
+    speciesList = speciesMap.keys()
     if options.oneSpecies:
-        specieslist = [options.oneSpecies]
+        speciesList = [options.oneSpecies]
 
     # Instantiate SQL connection
     conn = MySQLdb.connect(host = "localhost",
@@ -182,23 +183,18 @@ def main():
     cursor = conn.cursor()
 
     ### ------------------------------------------------------
-    ### First, run RNAhybrid over the mirna_target for the given organism, otherwise all organisms.
+    ### First, run RNAhybrid over the mirna_target for the given species, otherwise all species.
     ### ------------------------------------------------------
 
-    # Should we look up orthologs to QUERY via MIRBASE_MIR_ORTHOLOG and scan them as well?
-    if options.useOrthologs:
-        pass
-    else:
-        # Don't look up orthlogs. Just use provided species and sequence.
-        organism_flag = 'Hs'
+    for species in speciesList:
         mirna_query = 'ACTGACATTTTGGGTCACA' # Fake target for test purposes.
         cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
                        "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
                        "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
-                       "AND ORGANISM = '" + organism_flag +"' LIMIT 10")
+                       "AND ORGANISM = '" + species +"' LIMIT 10")
 
         # Build a Dictionary Storing RNAhybrid output
-        # Key = (entrez_geneid, organism_flag, mirna_query)
+        # Key = (entrez_geneid, species, mirna_query)
         # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
         results = {}     
         
@@ -206,7 +202,7 @@ def main():
             val = cursor.fetchone()
             if val == None:
                 break
-            results[(val[0], organism_flag, mirna_query)] = rnahybrid(options.noCache, organism_flag, val[0], val[1], mirna_query)
+            results[(val[0], species, mirna_query)] = rnahybrid(options.noCache, species, val[0], val[1], mirna_query)
 
     print "All done!\nResults is: %s" % len(results)
 
