@@ -1441,10 +1441,9 @@ void calc_closed(int i1, int j1, int i2, int j2)
             v7c = 65000;
             /* normal internal loops: */
             if ((x[k3]!=X)) {
-                                 /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
+              /*  && !((k4 > helix_start) && (i2 < helix_end-1))) { */
                 for (k3=i1+4; k3<=min(i1+iloop_upper_limit+1, j1-1); k3++) {
                     if (x[k3]==X) break;
-
                     for (k4=i2+2; k4<=min(i2+3, j2-1); k4++) {
                         if ((k4 > helix_start) && (i2 < helix_end-1)) break;
 
@@ -1464,12 +1463,10 @@ void calc_closed(int i1, int j1, int i2, int j2)
                 v7d = 65000;
                 /* normal internal loops: */
                 if (((x[k3]!=X)) && !(i2 < helix_end-1)) {
-                    int max1 = min(i1+iloop_upper_limit+1, j1-1);
-                    for (k3=i1+4; k3<=max1; k3++) {
+                    for (k3=i1+4; k3<=min(i1+iloop_upper_limit+1, j1-1); k3++) {
                         if (x[k3]==X) break;
-                        int max2 = min(i2+iloop_upper_limit+1, j2-1);
-                        for (k4=i2+4; k4<=max2; k4++) {
-                            if (k4 > helix_start) break;
+                        for (k4=i2+4; k4<=min(i2+iloop_upper_limit+1, j2-1); k4++) {
+                          if ((k4 > helix_start) && (i2 < helix_end-1)) break;
 
                             if (compl(x[k3+1],y[k4+1])) {
                                 //v6 = do_il(i1+1, i2+1, i1+1, k3, i2+1, k4, tbl_closed[k3][k4]);
