@@ -20,6 +20,9 @@ double int11_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE
 double int21_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
 double int22_ar[ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE][ALPHASIZE] = {0.0};
 
+char canPair[ALPHASIZE+1][ALPHASIZE+1] = {0};
+
+
 void init_constants()
 {
     e = 2.718281828459;
@@ -162,9 +165,12 @@ double bl_stacking (int t, int b, int i, int j)
 
 double r_bl_stacking (int t, int b, int i, int j)
 {
-    if ((t==0) && (b==1)) return(stack_dg_ar[inpx(i+1)][inpx(i)][inpy(j)][inpy(j+2)]);
-    else if ((t==1) && (b==0)) return(stack_dg_ar[inpx(i+2)][inpx(i)][inpy(j)][inpy(j+1)]);
-    else return(0);
+  if ((t==1) && (b==0)) {
+    return(stack_dg_ar[inpx(i+2)][inpx(i)][inpy(j)][inpy(j+1)]);
+  } else if ((t==1) && (b==0)) {
+    return(stack_dg_ar[inpx(i+2)][inpx(i)][inpy(j)][inpy(j+1)]);
+  }
+  return(0);
 }
 
 
@@ -12776,11 +12782,6 @@ void init_int22_ar()
 
 void init_canPair()
 {
-    int i,j;
-    for (i=0;i<ALPHASIZE+1;i++)  /* +1 because of masking letter X */
-        for(j=0;j<ALPHASIZE+1;j++)
-            canPair[i][j]=0;
-
     canPair [A][U] = 1;
     canPair [U][A] = 1;
     canPair [C][G] = 1;
