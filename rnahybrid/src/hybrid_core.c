@@ -1563,8 +1563,8 @@ void calc_closed(int i1, int j1, int i2, int j2)
                     for (k3=i1+4; k3<=max1; k3++)
                     {
                         if (x[k3]==X) break;
-                        int max2 = min(i2+iloop_upper_limit+1, j2-1);
                         if ((k4 > helix_start) && (i2 < helix_end-1)) {
+                          int max2 = min(i2+iloop_upper_limit+1, j2-1);
                           for (k4=i2+4; k4<=max2; k4++)
                             {
                               // if ((k4 > helix_start) && (i2 < helix_end-1)) break;
