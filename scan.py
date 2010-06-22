@@ -151,16 +151,14 @@ def main():
     if (options.mirnaQuery):
         assert(re.match("^[AUTGCautgc]*$", args[-1]))
     
-    # This is a dict mapping short species tags ('Hs','Cf') to long titles
-    # in the MIRBASE_MIR_ORTHOLOG database and TAXIDs.
+    # This is a dict mapping short species tags ('Hs','Cf') to TAXIDs.
     # Note: These are /local/ TAXIDs via localtaxid_to_org (in cafeuser?)
-    speciesMap = {'Hs': ('', 7951), # Human
-                  'Pt': ('', 7943), # Chimp
-                  'Cf': ('', 7959), # Dog
-                  'Rn': ('', 8385), # Rat
-                  'Gg': ('', 7458), # Chicken
-                  'Mm': ('', 8364)} # Mouse
-
+    speciesMap = {'Hs': 7951, # Human
+                  'Pt': 7943, # Chimp
+                  'Cf': 7959, # Dog
+                  'Rn': 8385, # Rat
+                  'Gg': 7458, # Chicken
+                  'Mm': 8364} # Mouse
 
     # Either one or all species
     speciesList = speciesMap.keys()
@@ -172,12 +170,14 @@ def main():
                            user = "root",
                            passwd = "KleinersLaws",
                            db = "nagarajan")
-    cursor = conn.cursor()
 
     ### ------------------------------------------------------
     ### First, run RNAhybrid over the mirna_target for the given species, otherwise all species.
     ### ------------------------------------------------------
+
     mirna_query = 'ACTGACATTTTGGGTCACA' # Fake target for test purposes.
+
+    
 
     # Build a Dictionary Storing RNAhybrid output
     # Key = (entrez_geneid, species, mirna_query)
@@ -187,18 +187,31 @@ def main():
     for species in speciesList:
         print "\nRunning RNAHybrid.\n\tspecies: \t %s" % species
         print "\tmiRNA Query: \t %s\n" % mirna_query
-    
+        
+        cursor = conn.cursor()
         cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
                        "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
                        "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
                        "AND ORGANISM = '" + species +"'")
 
         while True:
-            val = cursor.fetchone()
-            if val == None:
+            t_prm_sql = cursor.fetchone()
+            if t_prm_sql == None:
+                cursor.close()
                 break
-            # Full results storage will kill RAM. This needs to be a deque, or something.
-            results[(val[0], species, mirna_query)] = rnahybrid(options.noCache, species, val[0], val[1], mirna_query)
+
+            miRNAcursor = conn.cursor()
+            miRNAcursor.execute("SELECT DOM_MATURESEQ FROM DIST_ORTHOLOG_MIRNA WHERE DOM_LOCAL_TAXID = " + str(speciesMap[species]))
+
+            while True:
+                rna_sql = miRNAcursor.fetchone()
+                if rna_sql == None:
+                    miRNAcursor.close()
+                    break
+
+                # This will return something. We just discard it for now (But it will build the cache.)
+                # It clearly cannot fit in RAM, so we need some producer/consumer system.
+                rnahybrid(options.noCache, species, t_prm_sql[0], t_prm_sql[1], rna_sql[0])
 
     print "All done!\nResults is: %s" % len(results)
 
