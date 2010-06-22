@@ -7,23 +7,30 @@
 
 """ Invokes RNAhybrid, passes to TBA. """
 
-
-# Binary Paths (Unnecessary if the execuatbles are in your $PATH)
+### ---------------------------------------------
+### Paths to binaries
+### ---------------------------------------------
 
 RNAHYBRID_PATH = 'rnahybrid/src/RNAhybrid'
 TBA_PATH = 'tba'
 
-# Where to store pickled cache data (RNAhybrid output).
-# You could make this /tmp/myfolder/, or make it a map to /dev/shm for in-RAM caching.
+# Where to store pickled cache data from RNAhybrid. This will be large (many GB).
 COLDCACHE = 'cache/'
 
-# Where to temporarily store output from pair-wise alignments (from all_bz) as we
-# wait for TBA multiple alignments. This has lots of data churn, and should be a ram drive.
-# (Hint: Mount /dev/shm somewhere.)
+# Where to temporarily store output from pair-wise alignments (from all_bz).
+# This has lots of data churn, and should be a ram drive. (Hint: Mount /dev/shm somewhere.)
 HOTCACHE = '/dev/shm/hot/'
 
 
-# Database Settings
+### ---------------------------------------------
+## Database Settings
+### ---------------------------------------------
+
+
+
+### ---------------------------------------------
+### Imports
+### ---------------------------------------------
 
 import MySQLdb
 import os
@@ -41,8 +48,10 @@ class RNAHybridError(Exception):
     """ Thrown when RNAhybrid dies. """
     pass
 
-### ---------------------------------------------
 
+### ---------------------------------------------
+### RNAhybrid Execution Module
+### ---------------------------------------------
 def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
     """ Execute RNAhybrid.
     
@@ -100,7 +109,6 @@ def save_cache(module, cachedir, cachekey, item):
     output.close()
     return True
 
-
 def load_cache(module, cachedir, cachekey):
     """ Try to retrieve something from a pickle cache. """
     try:
@@ -111,8 +119,10 @@ def load_cache(module, cachedir, cachekey):
     # If this raises pickle.UnpicklingError, we have an error in the file itself. That's weird.
     # We don't catch it, since it's something you should look at.
 
-### ---------------------------------------------
 
+### ---------------------------------------------
+### TBA Execution Code for Alignments
+### ---------------------------------------------
 def tba():
     """ Execute TBA for multiple alignments. """
 
@@ -127,6 +137,9 @@ def tba():
         pass
 
 
+### ---------------------------------------------
+### The main() function. Always called first.
+### ---------------------------------------------    
 def main():
     """ Main execution. """
 
@@ -141,9 +154,9 @@ def main():
                       "or Pt. [Default: Use all species.]",
                       default=False, action="store", type="string", dest="oneSpecies")
 
-    #parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
-    #                  "miRNA in the MIRBASE_MIR_ORTHOLOG database.",
-    #                  default=False, action="store", type="string", dest="mirnaQuery")
+    parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
+                      "miRNA in the MIRBASE_MIR_ORTHOLOG database.",
+                      default=False, action="store", type="string", dest="mirnaQuery")
     
     #parser.add_option("-j", help="Threads. We perform pseudo-multithreading by parallelizing the "
     #                  "invocations of TBA. This is basically a spawned process limit. [Default: 2]",
