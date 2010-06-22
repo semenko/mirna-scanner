@@ -46,15 +46,15 @@ def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
     """
 
     cacheDir = mirna_query + '/' + str(entrez_geneid) + '/' + species + '/'
-    cacheKey = str(zlib.adler32(utr_seq))
+    cacheKey = str(zlib.adler32(utr_seq)) # This may return negative numbers. Perhaps should mask & 0xffffffff
 
     if not nocache:
         results = load_cache('rnahybrid', cacheDir, cacheKey)
         if results:
-            print "\t\tRetreived from cache: %s (entrez id)" % entrez_geneid
-            # TODO: Add checks here for hash collisions.
+            print "\t\tRetreived from cache: %s (miRNA query)" % mirna_query
+            # TODO: Add some addtl. validation of data?
             return results
-    print "\t\tDe-novo run on: %s (entrez id)" % entrez_geneid
+    print "\t\tDe-novo run on: %s (miRNA query)" % mirna_query
 
 
     # Set storing RNAhybrid output
@@ -175,18 +175,13 @@ def main():
     ### First, run RNAhybrid over the mirna_target for the given species, otherwise all species.
     ### ------------------------------------------------------
 
-    mirna_query = 'ACTGACATTTTGGGTCACA' # Fake target for test purposes.
-
-    
-
     # Build a Dictionary Storing RNAhybrid output
     # Key = (entrez_geneid, species, mirna_query)
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-    results = {}
+    # results = {}
                         
     for species in speciesList:
         print "\nRunning RNAHybrid.\n\tspecies: \t %s" % species
-        print "\tmiRNA Query: \t %s\n" % mirna_query
         
         cursor = conn.cursor()
         cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
@@ -199,6 +194,8 @@ def main():
             if t_prm_sql == None:
                 cursor.close()
                 break
+
+            print "\tUTR target: \t %s (entrez id)\n" % t_prm_sql[0]
 
             miRNAcursor = conn.cursor()
             miRNAcursor.execute("SELECT DOM_MATURESEQ FROM DIST_ORTHOLOG_MIRNA WHERE DOM_LOCAL_TAXID = " + str(speciesMap[species]))
