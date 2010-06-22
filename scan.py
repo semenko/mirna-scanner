@@ -13,9 +13,15 @@
 RNAHYBRID_PATH = 'rnahybrid/src/RNAhybrid'
 TBA_PATH = 'tba'
 
-# Where to store cache data.
+# Where to store pickled cache data (RNAhybrid output).
 # You could make this /tmp/myfolder/, or make it a map to /dev/shm for in-RAM caching.
-CACHEPATH = 'cache/'
+COLDCACHE = 'cache/'
+
+# Where to temporarily store output from pair-wise alignments (from all_bz) as we
+# wait for TBA multiple alignments. This has lots of data churn, and should be a ram drive.
+# (Hint: Mount /dev/shm somewhere.)
+HOTCACHE = '/dev/shm/hot/'
+
 
 # Database Settings
 
@@ -84,7 +90,7 @@ def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
 def save_cache(module, cachedir, cachekey, item):
     """ Store something in a pickle cache. """
     
-    path = CACHEPATH + module + '/' + cachedir
+    path = COLDCACHE + module + '/' + cachedir
     # Make sure all the directories exist.
     if not os.path.exists(path):
         os.makedirs(path)
@@ -98,12 +104,12 @@ def save_cache(module, cachedir, cachekey, item):
 def load_cache(module, cachedir, cachekey):
     """ Try to retrieve something from a pickle cache. """
     try:
-        cachevals = pickle.load(open(CACHEPATH + module + '/' + cachedir + cachekey + '.cache', 'rb'))
-        return cachevals
+        return pickle.load(open(COLDCACHE + module + '/' + cachedir + cachekey + '.cache', 'rb'))
     except IOError:
         # No cached file exists
         return False
     # If this raises pickle.UnpicklingError, we have an error in the file itself. That's weird.
+    # We don't catch it, since it's something you should look at.
 
 ### ---------------------------------------------
 
@@ -118,7 +124,7 @@ def tba():
                                stderr=subprocess.PIPE)
     stdoutdata, stderrdata = process.communicate()
     for line in stdoutdata.split('\n')[:-1]:
-             
+        pass
 
 
 def main():
