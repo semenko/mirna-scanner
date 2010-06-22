@@ -24,7 +24,6 @@ import os
 import cPickle as pickle
 import re
 import subprocess
-import sys
 import time
 import zlib
 from optparse import OptionParser, OptionGroup
@@ -46,13 +45,13 @@ def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
     """
 
     cacheDir = mirna_query + '/' + str(entrez_geneid) + '/' + species + '/'
-    cacheKey = str(zlib.adler32(utr_seq)) # This may return negative numbers. Perhaps should mask & 0xffffffff
+    cacheKey = str(zlib.adler32(utr_seq) & 0xffffffff) # Mask makes this positive.
 
     if not nocache:
         results = load_cache('rnahybrid', cacheDir, cacheKey)
         if results:
             print "\t\tRetreived from cache: %s (miRNA query)" % mirna_query
-            # TODO: Add some addtl. validation of data?
+            # TODO: Add some addtl. validation of cache data?
             return results
     print "\t\tDe-novo run on: %s (miRNA query)" % mirna_query
 
@@ -68,9 +67,7 @@ def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
                                stderr=subprocess.PIPE)
     stdoutdata, stderrdata = process.communicate()
     for line in stdoutdata.split('\n')[:-1]:
-        # ['command_line', '1957', 'command_line', '9', '-21.6', '0.597445', '966', 'A       G U', ' ACCCCGG G ', ' UGGGGCC C ', '        G  ']
-        # we do this annoying unpack so the ints aren't stored as string
-        # may not be necessary, as inputs may become strings in about 10 seconds ...
+        # This annoying unpack is to correctly store ints as ints, etc., and not everything as a string.
         mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
         results.add((float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime))
 
@@ -111,12 +108,24 @@ def load_cache(module, cachedir, cachekey):
 ### ---------------------------------------------
 
 def tba():
-    """ Execute TBA. """
+    """ Execute TBA for multiple alignments. """
 
-    pass
+    species_data = "((((human chimp) (rat mouse)) dog) chicken)" # Is this the correct hierarchy?
+
+    process = subprocess.Popen([TBA_PATH, '"' + species_data + '"', 'file here', 'file here'],
+                               shell=False,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    stdoutdata, stderrdata = process.communicate()
+    for line in stdoutdata.split('\n')[:-1]:
+             
+
 
 def main():
     """ Main execution. """
+
+    # Begin timing execution
+    starttime = time.time()
 
     usage = "usage: %prog [OPTIONS]"
     parser = OptionParser(usage)
@@ -179,7 +188,9 @@ def main():
     # Key = (entrez_geneid, species, mirna_query)
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
     # results = {}
-                        
+
+    speed_limit = "10"
+
     for species in speciesList:
         print "\nRunning RNAHybrid.\n\tspecies: \t %s" % species
         
@@ -187,7 +198,8 @@ def main():
         cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
                        "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
                        "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
-                       "AND ORGANISM = '" + species +"'")
+                       "AND ORGANISM = '" + species +"' "
+                       "LIMIT " + speed_limit)
 
         while True:
             t_prm_sql = cursor.fetchone()
@@ -195,10 +207,11 @@ def main():
                 cursor.close()
                 break
 
-            print "\tUTR target: \t %s (entrez id)\n" % t_prm_sql[0]
+            print "\n\tUTR target: \t %s (entrez id)\n" % t_prm_sql[0]
 
             miRNAcursor = conn.cursor()
-            miRNAcursor.execute("SELECT DOM_MATURESEQ FROM DIST_ORTHOLOG_MIRNA WHERE DOM_LOCAL_TAXID = " + str(speciesMap[species]))
+            miRNAcursor.execute("SELECT DOM_MATURESEQ FROM DIST_ORTHOLOG_MIRNA WHERE DOM_LOCAL_TAXID = "
+                                + str(speciesMap[species]) + " LIMIT " + speed_limit)
 
             while True:
                 rna_sql = miRNAcursor.fetchone()
@@ -209,8 +222,10 @@ def main():
                 # This will return something. We just discard it for now (But it will build the cache.)
                 # It clearly cannot fit in RAM, so we need some producer/consumer system.
                 rnahybrid(options.noCache, species, t_prm_sql[0], t_prm_sql[1], rna_sql[0])
+                
+    print "\nAll done!\n"
 
-    print "All done!\nResults is: %s" % len(results)
+    print "Execution took: %s secs." % (time.time()-starttime)
 
             
 if __name__ == "__main__":
