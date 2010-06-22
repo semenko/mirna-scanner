@@ -135,13 +135,13 @@ def main():
                       "or Pt. [Default: Use all species.]",
                       default=False, action="store", type="string", dest="oneSpecies")
 
-    parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
-                      "miRNA in the MIRBASE_MIR_ORTHOLOG database.",
-                      default=False, action="store", type="string", dest="mirnaQuery")
+    #parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
+    #                  "miRNA in the MIRBASE_MIR_ORTHOLOG database.",
+    #                  default=False, action="store", type="string", dest="mirnaQuery")
     
-    parser.add_option("-j", help="Threads. We perform pseudo-multithreading by parallelizing the "
-                      "invocations of TBA. This is basically a spawned process limit. [Default: 2]",
-                      default=2, action="store", type="int", dest="threads")
+    #parser.add_option("-j", help="Threads. We perform pseudo-multithreading by parallelizing the "
+    #                  "invocations of TBA. This is basically a spawned process limit. [Default: 2]",
+    #                  default=2, action="store", type="int", dest="threads")
 
     parser.add_option("-n", "--nocache", help="Don't use local cache to retreive prior RNAhybrid"
                      "results. [Default: False]",
