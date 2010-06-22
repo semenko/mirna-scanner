@@ -1089,8 +1089,10 @@ double calc_hybrid(int i1, int j1, int i2, int j2)
         v3 = 65000;
     }
     v4 = v2 < v3 ? v2 : v3;
-    v5 = v1 < v4 ? v1 : v4;
-    return(v5);
+    if (v1 < v4) {
+      return(v1);
+    }
+    return (v4);
 }
 
 
@@ -1147,8 +1149,10 @@ double calc_hybrid_new(int i1, int j1, int i2, int j2)
 
     v4 = v2 < v3 ? v2 : v3;
     v7 = v6 < v4 ? v6 : v4;
-    v5 = v1 < v7 ? v1 : v7;
-    return(v5);
+    if (v1 < v7) {
+      return(v1);
+    }
+    return(v7);
 }
 
 
@@ -1328,32 +1332,27 @@ void calc_unpaired_left_bot(int i1, int j1, int i2, int j2)
 
 void calc_closed(int i1, int j1, int i2, int j2)
 {
-    double v1, v3, v5, v7, v8, v9, v10, v11, v12;
+    double v1, v3, v5, v7, v8;
 
     /* ---------------------------------- start of --------------------------------- */
     /* - v1 = sr <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ p closed - */
+    v1 = 65000;
     if (((j1-i1) >= 2) && ((j2-i2) >= 2)) {
         if (compl(x[i1+1], y[i2+1])) {
             //v1 = sr_energy(i1+1, i2+1) + tbl_closed[i1+1][i2+1];
             v1 = r_sr_energy(i1+1, i2+1) + tbl_closed[i1+1][i2+1];
             /* No iteration neccessary! */
         }
-        else {
-            v1 = 65000;
-        }
-    }
-    else {
-        v1 = 65000;
     }
     /* - v1 = sr <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ p closed - */
     /* ---------------------------------- finished --------------------------------- */
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v3 = bt <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, empty) `with` (sizeTT 1 15 0 0)) ~~~ p closed  */
+    v3 = 65000;
     if (((j1-i1) >= 3) && ((j2-i2) >= 2) && compl(x[i1+1], y[i2+1]) && ((i2 < helix_start) || (i2 >= helix_end-1))) {
         double v2;
         int k;
-        v3 = 65000;
         for (k=i1+2; k<=min(i1+bloop_upper_limit+1, j1-1); k++) {
             if (x[k]==X)
                 break;
@@ -1363,18 +1362,15 @@ void calc_closed(int i1, int j1, int i2, int j2)
             v3 = v2 < v3 ? v2 : v3;
         }
     }
-    else {
-        v3 = 65000;
-    }
     /*  v3 = bt <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, empty) `with` (sizeTT 1 15 0 0)) ~~~ p closed  */
     /* ---------------------------------- finished --------------------------------- */
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v5 = bb <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(empty, region) `with` (sizeTT 0 0 1 15)) ~~~ p closed  */
+    v5 = 65000;
     if (((j1-i1) >= 2) && ((j2-i2) >= 3) & compl(x[i1+1], y[i2+1])) {
         double v4;
         int k2;
-        v5 = 65000;
         for (k2=i2+2; k2<=min(i2+bloop_upper_limit+1, j2-1); k2++) {
             if ((k2 > helix_start) && (k2 <= helix_end))
                 break;
@@ -1384,19 +1380,16 @@ void calc_closed(int i1, int j1, int i2, int j2)
             v5 = v4 < v5 ? v4 : v5;
         }
     }
-    else {
-        v5 = 65000;
-    }
     /*  v5 = bb <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(empty, region) `with` (sizeTT 0 0 1 15)) ~~~ p closed  */
     /* ---------------------------------- finished --------------------------------- */
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v7 = il <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, region) `with` (sizeTT 1 15 1 15)) ~~~ p closed  */
 
+    v7 = 65000;
     if (((j1-i1) >= 3) && ((j2-i2) >= 3) && compl(x[i1+1], y[i2+1])) {
         double v6, v7b, v7g;
         int k3, k4;
-        v7 = 65000;
         /* special internal loops: */
         for (k3=i1+2; k3<=min(i1+min(3,iloop_upper_limit+1), j1-1); k3++) {
             if (x[k3]==X) break;
@@ -1488,38 +1481,35 @@ void calc_closed(int i1, int j1, int i2, int j2)
         }
         v7 = v7g < v7 ? v7g : v7;
     }
-
-    else {
-        v7 = 65000;
-    }
     /*  v7 = il <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(region, region) `with` (sizeTT 1 15 1 15)) ~~~ p closed  */
     /* ---------------------------------- finished --------------------------------- */
 
     /* ---------------------------------- start of --------------------------------- */
     /*  v8 = el <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(uregion, uregion))  */
+    v8 = 65000;
     if (((j1-i1) >= 1) && ((j2-i2) >= 1) && (j1==i1+1 || x[i1+2]!='X') && ((i2 >= helix_end-1) || (helix_end > j2))) {
         if (compl(x[i1+1], y[i2+1])) {
             //v8 = ((((j1) - (i1+1)) > 0) ? dli_energy(i1+1, i2+1) : 0) + ((((j2) - (i2+1)) > 0) ? dri_energy(i1+1, i2+1) : 0);
             v8 = ((((j1) - (i1+1)) > 0) ? r_dli_energy(i1+1, i2+1) : 0) + ((((j2) - (i2+1)) > 0) ? r_dri_energy(i1+1, i2+1) : 0);
             /* No iteration neccessary! */
         }
-        else {
-            v8 = 65000;
-        }
-    }
-    else {
-        v8 = 65000;
     }
     /*  v8 = el <<< (tt(lbase, lbase) `with` (pairingTTcross compl)) ~~~ (tt(uregion, uregion))  */
     /* ---------------------------------- finished --------------------------------- */
 
-    v9 = v7 < v8 ? v7 : v8;
-    v10 = v5 < v9 ? v5 : v9;
-    v11 = v3 < v10 ? v3 : v10;
-    v12 = v1 < v11 ? v1 : v11;
     /* ------------------------- assign table entry result ------------------------- */
     if (((j1-i1) >= 1) && ((j2-i2) >= 1)) {
-        tbl_closed[i1][i2] = v12;
+      double v9, v10, v11;
+
+      v9 = v7 < v8 ? v7 : v8;
+      v10 = v5 < v9 ? v5 : v9;
+      v11 = v3 < v10 ? v3 : v10;
+
+      if (v1 < v11) {
+        tbl_closed[i1][i2] = v1;
+      } else {
+        tbl_closed[i1][i2] = v11;
+      }
     }
 }
 
