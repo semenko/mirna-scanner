@@ -55,7 +55,7 @@ class RNAHybridError(Exception):
     pass
 
 
-class RNAHybridThread(threading.thread):
+class RNAHybridThread(threading.Thread):
     """ The worker thread for RNAhybrid. """
 
     def __init__(self, thread_num, input_queue, output_queue):
@@ -167,33 +167,43 @@ def main():
     parser = OptionParser(usage)
 
     # General settings
-    parser.add_option("-s", "--oneSpecies", help="Specify a single species to query on, such as Hs "
-                      "or Pt. [Default: Use all species.]",
-                      default=False, action="store", type="string", dest="oneSpecies")
+    #parser.add_option("-s", "--oneSpecies", help="Specify a species list for a query, such as "
+    #                  "Hs,Pt [Default: Use all species.]",
+    #                  default=False, action="store", type="string", dest="speciesList")
 
-    parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
-                      "miRNA in the MIRBASE_MIR_ORTHOLOG database.", 
-                      default=False, action="store", type="string", dest="mirnaQuery")
-    
-    parser.add_option("-j", help="Threads. We parallelizing the invocations of RNAhybrid. [Default: # of CPU cores]",
+    #parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
+    #                  "miRNA in the MIRBASE_MIR_ORTHOLOG database.", 
+    #                  default=False, action="store", type="string", dest="mirnaQuery")
+
+    # This ignores hyperthreading pseudo-cores, which is fine since we hose the ALU
+    parser.add_option("-j", help="Threads. We parallelize the invocations of RNAhybrid. [Default: # of CPU cores]",
                       default=os.sysconf('SC_NPROCESSORS_ONLN'), action="store", type="int", dest="threads")
 
     parser.add_option("-n", "--nocache", help="Don't use local cache to retreive prior RNAhybrid"
                      "results. [Default: False]",
                      default=False, action="store_true", dest="noCache")
 
-    # RNAhybrid Options
-    # group = OptionGroup(parser, "RNAhybrid Settings (optional)")
-    # parser.add_option_group(group)
+    group = OptionGroup(parser, "Range Settings (optional)")
+    parser.add_option("--start-num", help="What number miRNA ortholog group to start scanning from (inclusive)."
+                      default=False, action="store", dest="startScan")
+    parser.add_option("--start-num", help="What number miRNA ortholog group to STOP scanning at (exclusive)."
+                      default=False, action="store", dest="stopScan")
+    parser.add_option_group(group)
 
     
     (options, args) = parser.parse_args()
     if len(args) == 0:
         parser.error("Try -h for help.")
 
+    if options.startScan or options.stopScan:
+        if not (options.startScan and options.stopScan):
+            parser.error("If you specifiy a start/stop, you must specify both ends of the range!")
+        if options.startScan > options.stopScan:
+            parser.error("Invalid scan range.")
+
     # Check that miRNA, if provided, is AUGC
-    if (options.mirnaQuery):
-        assert(re.match("^[AUTGCautgc]*$", args[-1]))
+    #if (options.mirnaQuery):
+    #    assert(re.match("^[AUTGCautgc]*$", args[-1]))
     
     # This is a dict mapping short species tags ('Hs','Cf') to TAXIDs.
     # Note: These are /local/ TAXIDs via localtaxid_to_org (in cafeuser?)
@@ -216,15 +226,7 @@ def main():
                            db = "nagarajan")
 
 
-
-    ### ------------------------------------------------------
-    ### First, run RNAhybrid over the mirna_target for the given species, otherwise all species.
-    ### ------------------------------------------------------
-
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-    # results = {}
-
-    speed_limit = "1000"
 
     input_queue = Queue.Queue(maxsize = 1000) # A threadsafe producer/consumer Queue.
     output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybri
@@ -232,13 +234,32 @@ def main():
     # First, start looping to populate our input_queue for threads to work
     # Then, when filled, keep topping it off, while we periodically poll output_queue
 
-    # Get
-    mirna_dbcursor = conn.cursor()
-    mirna_db_cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
-                            "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
-                            "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
-                            "AND ORGANISM = '" + species +"' "
-                            "LIMIT " + speed_limit)
+    # Get list of distinct orthologous groups.
+    mirna_orth_dbcursor = conn.cursor()
+    mirna_orth_dbcursor.execute("SELECT DISTINCT(MMO_MIRID) FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
+    mirna_mirid_targets = mirna_orth_dbcursor.fetchall()
+    # mirna_orth_dbcursor.close()
+
+    # We do some list slicing here to get a range [if specified] of targets
+    # This is so on a cluster, each machine can run over a selected few miRNAs
+    # (The list slicing is because fetchall() returns tuples.
+    mirna_mirid_targets = [x[0] for x in mirna_mirid_targets]
+    
+
+    print "we're targeting:"
+    print mirna_mirid_targets
+            
+
+    exit()
+    
+    #, MMO_SPECIES, MMO_MATURESEQ "
+
+
+#    mirna_db_cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
+#                            "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
+#                            "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
+#                            "AND ORGANISM = '" + species +"' "
+#                            "LIMIT " + speed_limit)
 
     # Internal Variable
     work_left == True
