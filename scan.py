@@ -2,17 +2,19 @@
 #
 # Copyright (c) 2010 Nick Semenkovich <semenko@alum.mit.edu>
 #
+# Developed for the Nagarajan lab, Washington University in St. Louis (WUSTL)
+# http://nagarajanlab.wustl.edu/
+#
 # This software is released under the MIT License <http://www.opensource.org/licenses/mit-license.php>
 #
 
-""" Invokes RNAhybrid, passes to TBA. """
+""" Perform multithreaded RNAhybrid alignments of miRNA orthologs to CD-masked ortholog clusters. """
 
 ### ---------------------------------------------
-### Paths to binaries
+### Paths
 ### ---------------------------------------------
 
 RNAHYBRID_PATH = 'rnahybrid/src/RNAhybrid'
-TBA_PATH = 'tba'
 
 # Where to store pickled cache data from RNAhybrid. This will be large (many GB).
 COLDCACHE = 'cache/'
@@ -26,6 +28,7 @@ HOTCACHE = '/dev/shm/hot/'
 ## Database Settings
 ### ---------------------------------------------
 
+# TODO: Switch to oracle, use cx_Oracle module
 
 
 ### ---------------------------------------------
@@ -35,6 +38,8 @@ HOTCACHE = '/dev/shm/hot/'
 import MySQLdb
 import os
 import cPickle as pickle
+import marshal
+import threading
 import re
 import subprocess
 import time
@@ -86,12 +91,11 @@ def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
         mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
         results.add((float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime))
 
-    if process.returncode != 0:
+    if process.returncode != 0 or len(stderrdata) != 0:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
 
     save_cache('rnahybrid', cacheDir, cacheKey, results)
     return results
-
 
 ### ---------------------------------------------
 ### Pickling (caching) code.
@@ -121,24 +125,7 @@ def load_cache(module, cachedir, cachekey):
 
 
 ### ---------------------------------------------
-### TBA Execution Code for Alignments
-### ---------------------------------------------
-def tba():
-    """ Execute TBA for multiple alignments. """
-
-    species_data = "((((human chimp) (rat mouse)) dog) chicken)" # Is this the correct hierarchy?
-
-    process = subprocess.Popen([TBA_PATH, '"' + species_data + '"', 'file here', 'file here'],
-                               shell=False,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-    stdoutdata, stderrdata = process.communicate()
-    for line in stdoutdata.split('\n')[:-1]:
-        pass
-
-
-### ---------------------------------------------
-### The main() function. Always called first.
+### The main() function. Called first.
 ### ---------------------------------------------    
 def main():
     """ Main execution. """
@@ -155,12 +142,11 @@ def main():
                       default=False, action="store", type="string", dest="oneSpecies")
 
     parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
-                      "miRNA in the MIRBASE_MIR_ORTHOLOG database.",
+                      "miRNA in the MIRBASE_MIR_ORTHOLOG database.", 
                       default=False, action="store", type="string", dest="mirnaQuery")
     
-    #parser.add_option("-j", help="Threads. We perform pseudo-multithreading by parallelizing the "
-    #                  "invocations of TBA. This is basically a spawned process limit. [Default: 2]",
-    #                  default=2, action="store", type="int", dest="threads")
+    parser.add_option("-j", help="Threads. We parallelizing the invocations of RNAhybrid. [Default: # of CPU cores]",
+                      default=os.sysconf('SC_NPROCESSORS_ONLN'), action="store", type="int", dest="threads")
 
     parser.add_option("-n", "--nocache", help="Don't use local cache to retreive prior RNAhybrid"
                      "results. [Default: False]",
@@ -172,8 +158,8 @@ def main():
 
     
     (options, args) = parser.parse_args()
-    #if not options:
-    #    parser.error("Try -h for help.")
+    if len(args) == 0:
+        parser.error("Try -h for help.")
 
     # Check that miRNA, if provided, is AUGC
     if (options.mirnaQuery):
@@ -199,16 +185,18 @@ def main():
                            passwd = "KleinersLaws",
                            db = "nagarajan")
 
+
+
     ### ------------------------------------------------------
     ### First, run RNAhybrid over the mirna_target for the given species, otherwise all species.
     ### ------------------------------------------------------
 
-    # Build a Dictionary Storing RNAhybrid output
-    # Key = (entrez_geneid, species, mirna_query)
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
     # results = {}
 
     speed_limit = "10"
+
+    q = Queue() # A threadsafe producer/consumer Queue.
 
     for species in speciesList:
         print "\nRunning RNAHybrid.\n\tspecies: \t %s" % species
