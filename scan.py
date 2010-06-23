@@ -55,9 +55,38 @@ class RNAHybridError(Exception):
     pass
 
 
-### ---------------------------------------------
-### RNAhybrid Execution Module
-### ---------------------------------------------
+class RNAHybridThread(threading.thread):
+    """ The worker thread for RNAhybrid. """
+
+    def __init__(self, thread_num, input_queue, output_queue):
+        self.thread_num = thread_num
+        self.__input_queue = input_queue
+        self.__output_queue = output_queue
+        threading.Thread.__init__(self) # Remember to init our overridden base class
+
+    def run(self):
+        """ The workhorse of our thread. """
+        while True:
+            task = self.__input_queue.get()
+            if task is None:
+                # Nothing in the queue, so we're either done, or something bad has happened
+                # and the main thread can't fill the Queue fast enough.
+                print "Nothing in work queue: Thread %s dying." % self.thread_num
+                break
+            else:
+                # Check to make sure the output queue isn't full.
+                # This shouldn't be the case, as Network Speed >>>> RNAHybrid Output Speed
+                while self.__output_queue.full():
+                    print "Output queue is full! (Strange. Network issues?) Sleeping."
+                    time.sleep(1)
+                # DO SOME WORK HERE
+                print "Doing work."
+                time.sleep(2)
+                ## Results contains:
+                ## (success_flag, invals, outvals)
+                self.__output_queue.put(results, True) # Block until a free slot is available.
+                
+
 def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
     """ Execute RNAhybrid.
     
@@ -195,42 +224,59 @@ def main():
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
     # results = {}
 
-    speed_limit = "10"
+    speed_limit = "1000"
 
-    queue = Queue.Queue() # A threadsafe producer/consumer Queue.
-    out_queue = Queue.Queue() # Same, but for product of RNAhybrid
+    input_queue = Queue.Queue(maxsize = 1000) # A threadsafe producer/consumer Queue.
+    output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybri
 
-    for species in speciesList:
-        print "\nRunning RNAHybrid.\n\tspecies: \t %s" % species
+    # First, start looping to populate our input_queue for threads to work
+    # Then, when filled, keep topping it off, while we periodically poll output_queue
+
+    # Get
+    mirna_dbcursor = conn.cursor()
+    mirna_db_cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
+                            "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
+                            "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
+                            "AND ORGANISM = '" + species +"' "
+                            "LIMIT " + speed_limit)
+
+    # Internal Variable
+    work_left == True
+
+    while True:
+        """ Main loop. """
         
-        cursor = conn.cursor()
-        cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
-                       "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
-                       "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
-                       "AND ORGANISM = '" + species +"' "
-                       "LIMIT " + speed_limit)
+        while work_left == True:
+            """ input_queue filling loop """
+
+            mirna_sql = mirna_db_cursor.fetchone()
+            if mirna_sql == None:
+                # We must be out of input miRNA ortholog groups
+                mirna_db_cursor.close()
+                work_left = False # Stop trying to fill the input_queue
+                break
+            
+            mirna_ortholog = ()
+
+            
+
+        # Popualte 
+
+        print "\n\tUTR target: \t %s (entrez id)\n" % t_prm_sql[0]
+
+        miRNAcursor = conn.cursor()
+        miRNAcursor.execute("SELECT DOM_MATURESEQ FROM DIST_ORTHOLOG_MIRNA WHERE DOM_LOCAL_TAXID = "
+                            + str(speciesMap[species]) + " LIMIT " + speed_limit)
 
         while True:
-            t_prm_sql = cursor.fetchone()
-            if t_prm_sql == None:
-                cursor.close()
+            rna_sql = miRNAcursor.fetchone()
+            if rna_sql == None:
+                miRNAcursor.close()
                 break
 
-            print "\n\tUTR target: \t %s (entrez id)\n" % t_prm_sql[0]
-
-            miRNAcursor = conn.cursor()
-            miRNAcursor.execute("SELECT DOM_MATURESEQ FROM DIST_ORTHOLOG_MIRNA WHERE DOM_LOCAL_TAXID = "
-                                + str(speciesMap[species]) + " LIMIT " + speed_limit)
-
-            while True:
-                rna_sql = miRNAcursor.fetchone()
-                if rna_sql == None:
-                    miRNAcursor.close()
-                    break
-
-                # This will return something. We just discard it for now (But it will build the cache.)
-                # It clearly cannot fit in RAM, so we need some producer/consumer system.
-                rnahybrid(options.noCache, species, t_prm_sql[0], t_prm_sql[1], rna_sql[0])
+            # Put in queue
+            queue.put((t_prm_sql[0], t_prm_sql[1], rna_sql[0]))
+            #rnahybrid(options.noCache, species, t_prm_sql[0], t_prm_sql[1], rna_sql[0])
                 
     print "\nAll done!\n"
 
