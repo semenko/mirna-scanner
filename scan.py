@@ -184,10 +184,10 @@ def main():
                      default=False, action="store_true", dest="noCache")
 
     group = OptionGroup(parser, "Range Settings (optional)")
-    parser.add_option("--start-num", help="What number miRNA ortholog group to start scanning from (inclusive)."
-                      default=False, action="store", dest="startScan")
-    parser.add_option("--start-num", help="What number miRNA ortholog group to STOP scanning at (exclusive)."
-                      default=False, action="store", dest="stopScan")
+    parser.add_option("--start-num", help="What number miRNA ortholog group to start scanning from (inclusive).",
+                      default=-1, action="store", type="int", dest="startNum")
+    parser.add_option("--stop-num", help="What number miRNA ortholog group to STOP scanning at (exclusive).",
+                      default=-1, action="store", type="int", dest="stopNum")
     parser.add_option_group(group)
 
     
@@ -195,11 +195,14 @@ def main():
     if len(args) == 0:
         parser.error("Try -h for help.")
 
-    if options.startScan or options.stopScan:
-        if not (options.startScan and options.stopScan):
+    # Sanity check range inputs
+    range_given = False
+    if options.startNum >= 0 or options.stopNum >= 0:
+        if not (options.startNum >= 0 and options.stopNum >= 0):
             parser.error("If you specifiy a start/stop, you must specify both ends of the range!")
-        if options.startScan > options.stopScan:
+        if options.startNum >= options.stopNum:
             parser.error("Invalid scan range.")
+        range_given = True
 
     # Check that miRNA, if provided, is AUGC
     #if (options.mirnaQuery):
@@ -215,9 +218,9 @@ def main():
                   'Mm': 8364} # Mouse
 
     # Either one or all species
-    speciesList = speciesMap.keys()
-    if options.oneSpecies:
-        speciesList = [options.oneSpecies]
+    #speciesList = speciesMap.keys()
+    #if options.oneSpecies:
+    #    speciesList = [options.oneSpecies]
 
     # Instantiate SQL connection
     conn = MySQLdb.connect(host = "localhost",
@@ -240,11 +243,13 @@ def main():
     mirna_mirid_targets = mirna_orth_dbcursor.fetchall()
     # mirna_orth_dbcursor.close()
 
-    # We do some list slicing here to get a range [if specified] of targets
-    # This is so on a cluster, each machine can run over a selected few miRNAs
     # (The list slicing is because fetchall() returns tuples.
     mirna_mirid_targets = [x[0] for x in mirna_mirid_targets]
-    
+
+    # We do some list slicing here to get a range [if specified] of targets
+    # This is so on a cluster, each machine can run over a selected few miRNAs    
+    if range_given == True:
+        mirna_mirid_targets = mirna_mirid_targets[options.startNum:options.stopNum]
 
     print "we're targeting:"
     print mirna_mirid_targets
