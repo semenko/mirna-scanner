@@ -229,19 +229,10 @@ def main():
                            db = "nagarajan")
 
 
-    # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-
-    input_queue = Queue.Queue(maxsize = 1000) # A threadsafe producer/consumer Queue.
-    output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybri
-
-    # First, start looping to populate our input_queue for threads to work
-    # Then, when filled, keep topping it off, while we periodically poll output_queue
-
     # Get list of distinct orthologous groups.
-    mirna_orth_dbcursor = conn.cursor()
-    mirna_orth_dbcursor.execute("SELECT DISTINCT(MMO_MIRID) FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
-    mirna_mirid_targets = mirna_orth_dbcursor.fetchall()
-    # mirna_orth_dbcursor.close()
+    mirna_dbcursor = conn.cursor()
+    mirna_dbcursor.execute("SELECT DISTINCT(MMO_MIRID) FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
+    mirna_mirid_targets = mirna_dbcursor.fetchall()
 
     # (The list slicing is because fetchall() returns tuples.
     mirna_mirid_targets = [x[0] for x in mirna_mirid_targets]
@@ -251,14 +242,27 @@ def main():
     if range_given == True:
         mirna_mirid_targets = mirna_mirid_targets[options.startNum:options.stopNum]
 
-    print "we're targeting:"
-    print mirna_mirid_targets
-            
-
-    exit()
+    print "Targeting %s miRNAs orthologous clusters" % len(mirna_mirid_targets)
     
-    #, MMO_SPECIES, MMO_MATURESEQ "
+    
+    # Now that we have the list of miRNA orthologous clusters, make a list of tuples
+    # corresponding to the miRNA values.
+    mirna_data = []
+    # This will look like:
+    # [(MMO_MIRID, MMO_SPECIES, MMO_MATURESEQ),
+    #  (MMO_MIRID, MMO_SPECIES, MMO_MATURESEQ), ...]
 
+    # This is an inelegant way to select only the MIRIDs we want, but Oracle's lack of a
+    # limit statement, and dependence on rowcount is sad, too. This second query makes things
+    # more flexible with MySQL environments.
+    mirna_dbcursor.execute("SELECT MMO_MIRID, MMO_SPECIES, MMO_MATURESEQ "
+                           "FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
+    for row in mirna_dbcursor.fetchall():
+        if row[0] in mirna_mirid_targets:
+            mirna_data.append(row)
+            
+    print mirna_data
+    exit()
 
 #    mirna_db_cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
 #                            "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
@@ -266,15 +270,29 @@ def main():
 #                            "AND ORGANISM = '" + species +"' "
 #                            "LIMIT " + speed_limit)
 
+    # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
+    
+    input_queue = Queue.Queue(maxsize = 1000) # A threadsafe producer/consumer Queue.
+    output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybri
+
+
+    ### ---------------------------------------------
+    ### First, start looping to populate our input_queue for threads to work
+    ### Then, when filled, keep topping it off, while we periodically poll output_queue
+    ### ---------------------------------------------
+    
     # Internal Variable
     work_left == True
 
     while True:
         """ Main loop. """
+
         
         while work_left == True:
             """ input_queue filling loop """
 
+
+            
             mirna_sql = mirna_db_cursor.fetchone()
             if mirna_sql == None:
                 # We must be out of input miRNA ortholog groups
