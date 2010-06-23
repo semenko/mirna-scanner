@@ -40,6 +40,7 @@ import os
 import cPickle as pickle
 import marshal
 import threading
+import Queue
 import re
 import subprocess
 import time
@@ -196,7 +197,8 @@ def main():
 
     speed_limit = "10"
 
-    q = Queue() # A threadsafe producer/consumer Queue.
+    queue = Queue.Queue() # A threadsafe producer/consumer Queue.
+    out_queue = Queue.Queue() # Same, but for product of RNAhybrid
 
     for species in speciesList:
         print "\nRunning RNAHybrid.\n\tspecies: \t %s" % species
