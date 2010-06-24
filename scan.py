@@ -28,7 +28,10 @@ HOTCACHE = '/dev/shm/hot/'
 ## Database Settings
 ### ---------------------------------------------
 
-# TODO: Switch to oracle, use cx_Oracle module
+ORACLE_SERVER = 'feserver.wustl.edu'
+ORACLE_DBASE = 'chipdb'
+ORACLE_USERNAME = 'mirtarget'
+ORACLE_PWFILE = '.oracle_password'
 
 
 ### ---------------------------------------------
@@ -38,6 +41,7 @@ HOTCACHE = '/dev/shm/hot/'
 import MySQLdb
 import os
 import cPickle as pickle
+import cx_Oracle
 import marshal
 import threading
 import Queue
@@ -230,14 +234,14 @@ def main():
 
 
     # Get list of distinct orthologous groups.
-    mirna_dbcursor = conn.cursor()
-    mirna_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
-
+    mirna_id_dbcursor = conn.cursor()
+    mirna_id_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
     # validated:
     # where mmo_maturemirid in ('hsa-miR-124', 'hsa-miR-1', 'hsa-miR-373','hsa-miR-155', 'hsa-miR-30a','hsa-let-7b')
     #  and mmo_species in ('mm9', 'rn4', 'canFam2', 'hg18')
+    mirna_mirid_queries = mirna_id_dbcursor.fetchall()
+    mirna_id_dbcursor.close()
     
-    mirna_mirid_queries = mirna_dbcursor.fetchall()
     # (The list slicing is because fetchall() returns tuples.
     mirna_mirid_queries = [x[0] for x in mirna_mirid_queries]
 
@@ -255,6 +259,7 @@ def main():
     # This will look like:
     # mirna_queries[MIR_ID] = ((MMO_SPECIES, MMO_MATURESEQ), (MMO_SPECIES, MMO_MATURESEQ) ...)
 
+    mirna_dbcursor = conn.cursor()
     # This is an inelegant way to select only the MIRIDs we want, but Oracle's lack of a
     # limit statement means this second query makes things more flexible with MySQL environments.
     mirna_dbcursor.execute("SELECT MMO_MATUREMIRID, MMO_SPECIES, MMO_MATURESEQ "
@@ -262,12 +267,23 @@ def main():
     for row in mirna_dbcursor.fetchall():
         if row[0] in mirna_mirid_queries:
             mirna_queries.setdefault(row[0], set()).add((row[1], row[2]))
+    mirna_dbcursor.close()
 
     # Sanity check that should never fail.
     assert(len(mirna_mirid_queries) == len(mirna_queries))
-    
-    exit()
 
+    ### ---------------------------------------------
+    ### At this point, we have all the necessary miRNA clusters, so
+    ### it's time to build /mRNA/ clusters from the database.
+    ### ---------------------------------------------
+    
+    mrna_coords = conn.cursor()
+    
+    mrna_coords.close()
+
+    
+
+    quit()
 
 #    mirna_db_cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
 #                            "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
