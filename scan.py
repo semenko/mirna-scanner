@@ -231,9 +231,13 @@ def main():
 
     # Get list of distinct orthologous groups.
     mirna_dbcursor = conn.cursor()
-    mirna_dbcursor.execute("SELECT DISTINCT(MMO_MIRID) FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
-    mirna_mirid_queries = mirna_dbcursor.fetchall()
+    mirna_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
 
+    # validated:
+    # where mmo_maturemirid in ('hsa-miR-124', 'hsa-miR-1', 'hsa-miR-373','hsa-miR-155', 'hsa-miR-30a','hsa-let-7b')
+    #  and mmo_species in ('mm9', 'rn4', 'canFam2', 'hg18')
+    
+    mirna_mirid_queries = mirna_dbcursor.fetchall()
     # (The list slicing is because fetchall() returns tuples.
     mirna_mirid_queries = [x[0] for x in mirna_mirid_queries]
 
@@ -243,23 +247,26 @@ def main():
         mirna_mirid_queries = mirna_mirid_queries[options.startNum:options.stopNum]
 
     print "Targeting %s miRNAs orthologous clusters" % len(mirna_mirid_queries)
+
     
-    
-    # Now that we have the list of miRNA orthologous clusters, make a list of tuples
+    # Now that we have the list of miRNA orthologous clusters, make a dict of tuples
     # corresponding to the miRNA values.
-    mirna_queries = []
+    mirna_queries = {}
     # This will look like:
-    # [(MMO_MIRID, MMO_SPECIES, MMO_MATURESEQ),
-    #  (MMO_MIRID, MMO_SPECIES, MMO_MATURESEQ), ...]
+    # mirna_queries[MIR_ID] = ((MMO_SPECIES, MMO_MATURESEQ), (MMO_SPECIES, MMO_MATURESEQ) ...)
 
     # This is an inelegant way to select only the MIRIDs we want, but Oracle's lack of a
-    # limit statement, and dependence on rowcount is sad, too. This second query makes things
-    # more flexible with MySQL environments.
-    mirna_dbcursor.execute("SELECT MMO_MIRID, MMO_SPECIES, MMO_MATURESEQ "
-                           "FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
+    # limit statement means this second query makes things more flexible with MySQL environments.
+    mirna_dbcursor.execute("SELECT MMO_MATUREMIRID, MMO_SPECIES, MMO_MATURESEQ "
+                           "FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1, 2")
     for row in mirna_dbcursor.fetchall():
         if row[0] in mirna_mirid_queries:
-            mirna_queries.append(row)
+            mirna_queries.setdefault(row[0], set()).add((row[1], row[2]))
+
+    # Sanity check that should never fail.
+    assert(len(mirna_mirid_queries) == len(mirna_queries))
+    
+    exit()
 
 
 #    mirna_db_cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
@@ -273,28 +280,28 @@ def main():
     input_queue = Queue.Queue(maxsize = 1000) # A threadsafe producer/consumer Queue.
     output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid
 
+
     ### ---------------------------------------------
     ### First, start looping to populate our input_queue for threads to work
     ### Then, when filled, keep topping it off, while we periodically poll output_queue
     ### ---------------------------------------------
 
+    # We work on one mirna cluster at a time, and loop over all sequence clusters
+    for mmo_maturemirid in mirna_queries.iterkeys():
+        """ Loop over mirna_queries dict handing out clusters of miRNAs to threads. """
 
-    # !!! WE must do this on miRNA CLUSTERS otherwise we're going to be screwed for sorting later!!!!
-
-    # We work on one mirna item at a time, but on many sequence queries
-    for mirna in mirna_queries:
         _, query_species, _ = mirna # Unpack: id, species, seq
 
         ## DATABASE SELECT HERE
         work_left = True
         while True:
-            """ This loop runs until we've exhausted all sequences for the given species. """
+            """ This loop runs until we've exhausted all sequences for the given mmo_mirid cluster. """
             
             while work_left == True:
                 """ input_queue filling loop """
 
-                # Fill work queue with mirna:sequence pairs
-                # We loop over all sequence data for a species, until our queue is full
+                # Fill work queue with mirna_cluster:sequence_cluster pairs
+                # We loop over all sequence clusters, until our queue is full
 
                 # keep advancing in database record
                 mirna_sql = mirna_db_cursor.fetchone()
@@ -304,9 +311,7 @@ def main():
                     work_left = False # Stop trying to fill the input_queue
                     break
 
-            
-
-        # Popualte 
+        # Populate 
 
         print "\n\tUTR target: \t %s (entrez id)\n" % t_prm_sql[0]
 
