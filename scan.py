@@ -10,28 +10,26 @@
 
 """ Perform multithreaded RNAhybrid alignments of miRNA orthologs to CD-masked ortholog clusters. """
 
-### ---------------------------------------------
-### Paths
-### ---------------------------------------------
 
+
+# Relative (or full) path to RNAhybrid
 RNAHYBRID_PATH = 'rnahybrid/src/RNAhybrid'
 
-# Where to store pickled cache data from RNAhybrid. This will be large (many GB).
+# Where to store cold-cache data from RNAhybrid. This will be large (many GB).
 COLDCACHE = 'cache/'
 
-# Where to temporarily store output from pair-wise alignments (from all_bz).
-# This has lots of data churn, and should be a ram drive. (Hint: Mount /dev/shm somewhere.)
+# Where to temporarily store rapidly churned cache data -- this should be a ram drive.
+# (Hint: Mount /dev/shm somewhere.)
 HOTCACHE = '/dev/shm/hot/'
 
-
-### ---------------------------------------------
-## Database Settings
-### ---------------------------------------------
-
+# Database Settings
 ORACLE_SERVER = 'feservertest.wustl.edu'
 ORACLE_DB = 'CHIPDB'
 ORACLE_USERNAME = 'mirtarget'
 ORACLE_PWFILE = '.oracle_password'
+
+
+
 
 
 ### ---------------------------------------------
@@ -84,6 +82,7 @@ class RNAHybridThread(threading.Thread):
                     time.sleep(1)
                 # DO SOME WORK HERE
                 print "Doing work."
+                # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
                 time.sleep(2)
                 ## Results contains:
                 ## (success_flag, invals, outvals)
@@ -166,6 +165,9 @@ def main():
     # Begin timing execution
     starttime = time.time()
 
+    # Check that RNAhybrid exists, and is executable
+    assert(os.path.exists(RNAHYBRID_PATH) and os.access(RNAHYBRID_PATH, os.X_OK))
+
     usage = "usage: %prog [OPTIONS]"
     parser = OptionParser(usage)
 
@@ -217,12 +219,9 @@ def main():
     #if options.oneSpecies:
     #    speciesList = [options.oneSpecies]
 
-    # Instantiate SQL connection
-    #dbase = MySQLdb.connect(host = "localhost", user = "root", passwd = "KleinersLaws", db = "nagarajan")
-
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
     dbase = cx_Oracle.connect(ORACLE_USERNAME, oracle_password, ORACLE_SERVER + ':1521/' + ORACLE_DB)
-    print "Connected to %s" % dbase.dsn
+    print "Connected to %s\n" % dbase.dsn
 
     # Get list of distinct orthologous groups.
     mirna_id_dbcursor = dbase.cursor()
@@ -262,14 +261,14 @@ def main():
             # Sanity check that miRNAs are actual sequences
             try:
                 assert(re.match("^[AUTGC]*$", row[2], re.IGNORECASE))
+                mirna_queries.setdefault(row[0], set()).add((row[1], row[2]))
             except AssertionError:
-                print row[2]
-            mirna_queries.setdefault(row[0], set()).add((row[1], row[2]))
+                print "\tIgnoring miRNA with 'N' or invalid char: %s, %s [mirid, species]" % (row[0], row[1])
     mirna_dbcursor.close()
 
     # Sanity check that should never fail (unless you've broken the SQL queries)
     assert(len(mirna_mirid_queries) == len(mirna_queries))
-    print "miRNA data retreived."
+    print "miRNA data retreived.\n"
 
     ### ---------------------------------------------
     ### At this point, we have all the necessary miRNA clusters, so
@@ -283,10 +282,11 @@ def main():
     ### We preserve the gene id, and other meta data, so that later on, we can
     ### see if a region was a coding region, UTR, etc.
     ### ---------------------------------------------
-    
+
+    # These are the exon coordinates.
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
-                       "FROM PAP.MRNA_COORDINATES WHERE ROWNUM <= 1000 "
+                       "FROM PAP.MRNA_COORDINATES WHERE ROWNUM <= 2000 "
                        "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START")
     # We loop instead of fetchall(), as this is a huge result.
     # We could store CDS_COORDINTES as well at this step w/ a SQL JOIN, and might later, if RAM is available.
@@ -299,8 +299,10 @@ def main():
         row = mrna_dbase.fetchone()
         if row == None:
             break
+        assert(row[2] < row[3]) # Make sure [start_pos] < [end_pos]
         mrna_coords.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
+    
 
     print "Validating exon bounds."
     # Sanity check code to ensure exon positions don't overlap.
@@ -310,31 +312,25 @@ def main():
         for item in value:
             assert((item[0] > start_old) and (item[1] > start_old))
             assert((item[0] > end_old) and (item[1] > end_old))
-            assert(item[0] < item[1])
             start_old = item[0]
             end_old = item[1]
-    print "Validated."
+    print "Validated.\n"
 
 
-    # We now have the exon positions in RAM. Let's get ready to rumble!!!
-
-
-    # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-    
-    input_queue = Queue.Queue(maxsize = 1000) # A threadsafe producer/consumer Queue.
-    output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid
-
-
+    quit()
     ### ---------------------------------------------
     ### First, start looping to populate our input_queue for threads to work
     ### Then, when filled, keep topping it off, while we periodically poll output_queue
     ### ---------------------------------------------
 
-    # We work on one mirna cluster at a time, and loop over all sequence clusters
-    for mmo_maturemirid in mirna_queries.iterkeys():
+    input_queue = Queue.Queue(maxsize = 1000) # A threadsafe producer/consumer Queue.
+    output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid        
+
+    # We work on one miRNA cluster at a time, and loop over all sequence clusters
+    for mmo_maturemirid, mmo_sequence_pairs in mirna_queries.iteritems():
         """ Loop over mirna_queries dict handing out clusters of miRNAs to threads. """
 
-        _, query_species, _ = mirna # Unpack: id, species, seq
+        
 
         ## DATABASE SELECT HERE
         work_left = True
