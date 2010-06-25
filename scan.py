@@ -283,15 +283,45 @@ def main():
     ### see if a region was a coding region, UTR, etc.
     ### ---------------------------------------------
 
-    # These are the exon coordinates.
+    
+
+    # Get the exon coordinates of all our genes, grouped by ortholog clusters
     mrna_dbase = dbase.cursor()
-    mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
-                       "FROM PAP.MRNA_COORDINATES WHERE ROWNUM <= 2000 "
-                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START")
+    # Can set dbase.arraysize = ### to set cache size for fetchAll/One
+    mrna_dbase.execute("SELECT HGE_HOMOLOGENEID, GCS_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP, "
+                       "GCS_TAXID, GCS_LOCALTAXID, GCS_COMPLEMENT, GCS_START, GCS_STOP FROM "
+                       "PAP.HOMOLOGENE, PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
+                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = MRNA_COORDINATES.MRC_GENEID AND "
+                       "PAP.HOMOLOGENE.HGE_GENEID = PAP.GENE_COORDINATES.GCS_GENEID AND "
+                       "ROWNUM <1000 "
+                       "ORDER BY HGE_HOMOLOGENEID, HGE_GENEID")
+                       
+    #    mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
+    #                       "FROM PAP.MRNA_COORDINATES WHERE ROWNUM <= 2000 "
+    #                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START")
+
+    # *** There are a few data structures here to take note of. ***
+    homologene_to_mrna = {}
+    # homologene_to_mrna: (Dict)
+    #   key: hge_homologeneid
+    #   val: [(mrc_geneid, mrc_transcript_no), (mrc_geneid, mrc_transcript_no) ...]
+
+    mrna_to_seq = {}
+    # mrna_to_seq: (Dict)
+    #   key: (mrc_geneid, mrc_transcript_no)
+    #   val: (gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop)
+
+    mrna_to_exons = {}
+    # mrna_to_exons: (Dict)
+    #   key: (mrc_geneid, mrc_transcript_no)
+    #   val: [(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
+
     # We loop instead of fetchall(), as this is a huge result.
-    # We could store CDS_COORDINTES as well at this step w/ a SQL JOIN, and might later, if RAM is available.
-    mrna_coords = {}
+    # We could store CDS_COORDINATES as well at this step w/ a SQL JOIN, and might later, if RAM is available.
+    mrna_clusters = {}
+    (hge_homologeneid) -> {(mrc_geneid, mrc_transcript_no, start, stop)} -> [(start, stop), (start, stop) ...]
     # This will be a dict:
+    # Key: (ortholog_id, )
     # Keys: (MRC_GENEID, MRC_TRANSCRIPT_NO)
     # Vals: [(MRC_START, MRC_STOP), (MRC_START, MRC_STOP), ...]
     # Note that vals is pre-sorted by MRC_START by the SQL SELECT statement.
