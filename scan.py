@@ -28,8 +28,8 @@ HOTCACHE = '/dev/shm/hot/'
 ## Database Settings
 ### ---------------------------------------------
 
-ORACLE_SERVER = 'feserver.wustl.edu'
-ORACLE_DBASE = 'chipdb'
+ORACLE_SERVER = 'feservertest.wustl.edu'
+ORACLE_DB = 'CHIPDB'
 ORACLE_USERNAME = 'mirtarget'
 ORACLE_PWFILE = '.oracle_password'
 
@@ -175,10 +175,6 @@ def main():
     #                  "Hs,Pt [Default: Use all species.]",
     #                  default=False, action="store", type="string", dest="speciesList")
 
-    #parser.add_option("-m", help="Specify a miRNA query sequence. If not specified, run over all "
-    #                  "miRNA in the MIRBASE_MIR_ORTHOLOG database.", 
-    #                  default=False, action="store", type="string", dest="mirnaQuery")
-
     # This ignores hyperthreading pseudo-cores, which is fine since we hose the ALU
     parser.add_option("-j", help="Threads. We parallelize the invocations of RNAhybrid. [Default: # of CPU cores]",
                       default=os.sysconf('SC_NPROCESSORS_ONLN'), action="store", type="int", dest="threads")
@@ -208,10 +204,6 @@ def main():
             parser.error("Invalid scan range.")
         range_given = True
 
-    # Check that miRNA, if provided, is AUGC
-    #if (options.mirnaQuery):
-    #    assert(re.match("^[AUTGCautgc]*$", args[-1]))
-    
     # This is a dict mapping short species tags ('Hs','Cf') to TAXIDs.
     # Note: These are /local/ TAXIDs via localtaxid_to_org (in cafeuser?)
     speciesMap = {'Hs': 7951, # Human
@@ -227,15 +219,16 @@ def main():
     #    speciesList = [options.oneSpecies]
 
     # Instantiate SQL connection
-    conn = MySQLdb.connect(host = "localhost",
-                           user = "root",
-                           passwd = "KleinersLaws",
-                           db = "nagarajan")
+    #dbase = MySQLdb.connect(host = "localhost", user = "root", passwd = "KleinersLaws", db = "nagarajan")
 
+    oracle_password = open(ORACLE_PWFILE, 'r').readline()
+    dbase = cx_Oracle.connect(ORACLE_USERNAME, oracle_password, ORACLE_SERVER + ':1521/' + ORACLE_DB)
+    print "Connected to %s" % dbase.dsn
 
     # Get list of distinct orthologous groups.
-    mirna_id_dbcursor = conn.cursor()
-    mirna_id_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1")
+    mirna_id_dbcursor = dbase.cursor()
+    mirna_id_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
+                              "WHERE MMO_MATURESEQ IS NOT NULL ORDER BY 1")
     # validated:
     # where mmo_maturemirid in ('hsa-miR-124', 'hsa-miR-1', 'hsa-miR-373','hsa-miR-155', 'hsa-miR-30a','hsa-let-7b')
     #  and mmo_species in ('mm9', 'rn4', 'canFam2', 'hg18')
@@ -259,29 +252,74 @@ def main():
     # This will look like:
     # mirna_queries[MIR_ID] = ((MMO_SPECIES, MMO_MATURESEQ), (MMO_SPECIES, MMO_MATURESEQ) ...)
 
-    mirna_dbcursor = conn.cursor()
+    mirna_dbcursor = dbase.cursor()
     # This is an inelegant way to select only the MIRIDs we want, but Oracle's lack of a
     # limit statement means this second query makes things more flexible with MySQL environments.
     mirna_dbcursor.execute("SELECT MMO_MATUREMIRID, MMO_SPECIES, MMO_MATURESEQ "
-                           "FROM MIRBASE_MIR_ORTHOLOG ORDER BY 1, 2")
+                           "FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
+                           "WHERE MMO_MATURESEQ IS NOT NULL ORDER BY 1, 2")
     for row in mirna_dbcursor.fetchall():
         if row[0] in mirna_mirid_queries:
+            # Sanity check that miRNAs are actual sequences
+            try:
+                assert(re.match("^[AUTGCautgc]*$", row[2]))
+            except AssertionError:
+                print row[2]
             mirna_queries.setdefault(row[0], set()).add((row[1], row[2]))
     mirna_dbcursor.close()
 
-    # Sanity check that should never fail.
+    # Sanity check that should never fail (unless you've broken the SQL queries)
     assert(len(mirna_mirid_queries) == len(mirna_queries))
+    print "miRNA data retreived."
 
     ### ---------------------------------------------
     ### At this point, we have all the necessary miRNA clusters, so
     ### it's time to build /mRNA/ clusters from the database.
+    ###
+    ### We do this by getting the coding positions from @@@@@@@@@@@@, then
+    ### selecting those regions from @@@@@@@@@@@.
+    ###
+    ### NOTE: Make sure to take the reverse compliment of the reverse strands.
+    ###
+    ### We preserve the gene id, and other meta data, so that later on, we can
+    ### see if a region was a coding region, UTR, etc.
     ### ---------------------------------------------
     
-    mrna_coords = conn.cursor()
-    
-    mrna_coords.close()
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
+                       "FROM PAP.MRNA_COORDINATES WHERE ROWNUM <= 1000 "
+                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START")
+    # We loop instead of fetchall(), as this is a huge result.
+    # We could store CDS_COORDINTES as well at this step w/ a SQL JOIN, and might later, if RAM is available.
+    mrna_coords = {}
+    # This will be a dict:
+    # Keys: (MRC_GENEID, MRC_TRANSCRIPT_NO)
+    # Vals: [(MRC_START, MRC_STOP), (MRC_START, MRC_STOP), ...]
+    # Note that vals is pre-sorted by MRC_START by the SQL SELECT statement.
+    while True:
+        row = mrna_dbase.fetchone()
+        if row == None:
+            break
+        mrna_coords.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+    mrna_dbase.close()
 
-    
+    kold = None
+    print "Validating bounds."
+    for k in mrna_coords.iterkeys():
+        for item in mrna_coords[k]:
+            if k == kold:
+                assert(item[0] > r2old)
+                assert(item[1] > r2old)
+                assert(item[0] > r3old)
+                assert(item[1] > r3old)
+                assert(item[0] < item[1])
+                r2old = item[0]
+                r3old = item[1]
+            else:
+                kold = k
+                r2old = 0
+                r3old = 1
+    print "Validated."
 
     quit()
 
@@ -331,7 +369,7 @@ def main():
 
         print "\n\tUTR target: \t %s (entrez id)\n" % t_prm_sql[0]
 
-        miRNAcursor = conn.cursor()
+        miRNAcursor = dbase.cursor()
         miRNAcursor.execute("SELECT DOM_MATURESEQ FROM DIST_ORTHOLOG_MIRNA WHERE DOM_LOCAL_TAXID = "
                             + str(speciesMap[species]) + " LIMIT " + speed_limit)
 
