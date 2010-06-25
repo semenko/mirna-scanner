@@ -317,21 +317,27 @@ def main():
     print "Validated.\n"
 
 
-    quit()
     ### ---------------------------------------------
     ### First, start looping to populate our input_queue for threads to work
     ### Then, when filled, keep topping it off, while we periodically poll output_queue
     ### ---------------------------------------------
 
-    input_queue = Queue.Queue(maxsize = 1000) # A threadsafe producer/consumer Queue.
-    output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid        
+    input_queue = Queue.Queue(maxsize = 1000)  # A threadsafe producer/consumer Queue
+    output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid
+
+    # REMINDER:
+    # AT SOME POINT!!!!!!!!!!!!!!
+    # Take reverse complement of sequence via PAP.GENE_COORDINATES
 
     # We work on one miRNA cluster at a time, and loop over all sequence clusters
-    for mmo_maturemirid, mmo_sequence_pairs in mirna_queries.iteritems():
+    for mirid, sepecies_mirna_pairs in mirna_queries.iteritems():
         """ Loop over mirna_queries dict handing out clusters of miRNAs to threads. """
 
+        #'abc' = [(species, atagaga), (species2, tagatataccc)]
+        #-> span rnahybrid thread
+        #-> input queue = miRNA
         
-
+        
         ## DATABASE SELECT HERE
         work_left = True
         while True:
