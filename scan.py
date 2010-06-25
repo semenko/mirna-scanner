@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright (c) 2010 Nick Semenkovich <semenko@alum.mit.edu>
 #
@@ -38,7 +38,6 @@ ORACLE_PWFILE = '.oracle_password'
 ### Imports
 ### ---------------------------------------------
 
-import MySQLdb
 import os
 import cPickle as pickle
 import cx_Oracle
@@ -262,7 +261,7 @@ def main():
         if row[0] in mirna_mirid_queries:
             # Sanity check that miRNAs are actual sequences
             try:
-                assert(re.match("^[AUTGCautgc]*$", row[2]))
+                assert(re.match("^[AUTGC]*$", row[2], re.IGNORECASE))
             except AssertionError:
                 print row[2]
             mirna_queries.setdefault(row[0], set()).add((row[1], row[2]))
@@ -303,31 +302,22 @@ def main():
         mrna_coords.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
 
-    kold = None
-    print "Validating bounds."
-    for k in mrna_coords.iterkeys():
-        for item in mrna_coords[k]:
-            if k == kold:
-                assert(item[0] > r2old)
-                assert(item[1] > r2old)
-                assert(item[0] > r3old)
-                assert(item[1] > r3old)
-                assert(item[0] < item[1])
-                r2old = item[0]
-                r3old = item[1]
-            else:
-                kold = k
-                r2old = 0
-                r3old = 1
+    print "Validating exon bounds."
+    # Sanity check code to ensure exon positions don't overlap.
+    for value in mrna_coords.itervalues():
+        start_old = 0
+        end_old = 1
+        for item in value:
+            assert((item[0] > start_old) and (item[1] > start_old))
+            assert((item[0] > end_old) and (item[1] > end_old))
+            assert(item[0] < item[1])
+            start_old = item[0]
+            end_old = item[1]
     print "Validated."
 
-    quit()
 
-#    mirna_db_cursor.execute("SELECT ENTREZ_GENEID, UTR_SEQ FROM "
-#                            "T_PRM_UTRS_MIRTARGET WHERE UTR_COORDINATES "
-#                            "REGEXP \"^[0-9]*\_[0-9]*$\" AND TRANSCRIPT_NO = 0 "
-#                            "AND ORGANISM = '" + species +"' "
-#                            "LIMIT " + speed_limit)
+    # We now have the exon positions in RAM. Let's get ready to rumble!!!
+
 
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
     
