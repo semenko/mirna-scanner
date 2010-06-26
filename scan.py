@@ -283,23 +283,6 @@ def main():
     ### see if a region was a coding region, UTR, etc.
     ### ---------------------------------------------
 
-    
-
-    # Get the exon coordinates of all our genes, grouped by ortholog clusters
-    mrna_dbase = dbase.cursor()
-    # Can set dbase.arraysize = ### to set cache size for fetchAll/One
-    mrna_dbase.execute("SELECT HGE_HOMOLOGENEID, GCS_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP, "
-                       "GCS_TAXID, GCS_LOCALTAXID, GCS_COMPLEMENT, GCS_START, GCS_STOP FROM "
-                       "PAP.HOMOLOGENE, PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
-                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = MRNA_COORDINATES.MRC_GENEID AND "
-                       "PAP.HOMOLOGENE.HGE_GENEID = PAP.GENE_COORDINATES.GCS_GENEID AND "
-                       "ROWNUM <1000 "
-                       "ORDER BY HGE_HOMOLOGENEID, HGE_GENEID")
-                       
-    #    mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
-    #                       "FROM PAP.MRNA_COORDINATES WHERE ROWNUM <= 2000 "
-    #                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START")
-
     # *** There are a few data structures here to take note of. ***
     homologene_to_mrna = {}
     # homologene_to_mrna: (Dict)
@@ -308,7 +291,7 @@ def main():
 
     mrna_to_seq = {}
     # mrna_to_seq: (Dict)
-    #   key: (mrc_geneid, mrc_transcript_no)
+    #   key: mrc_geneid  # TODO: Double-check that mrc_transcript_no is NOT needed here
     #   val: (gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop)
 
     mrna_to_exons = {}
@@ -316,22 +299,48 @@ def main():
     #   key: (mrc_geneid, mrc_transcript_no)
     #   val: [(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
 
-    # We loop instead of fetchall(), as this is a huge result.
-    # We could store CDS_COORDINATES as well at this step w/ a SQL JOIN, and might later, if RAM is available.
-    mrna_clusters = {}
-    (hge_homologeneid) -> {(mrc_geneid, mrc_transcript_no, start, stop)} -> [(start, stop), (start, stop) ...]
-    # This will be a dict:
-    # Key: (ortholog_id, )
-    # Keys: (MRC_GENEID, MRC_TRANSCRIPT_NO)
-    # Vals: [(MRC_START, MRC_STOP), (MRC_START, MRC_STOP), ...]
-    # Note that vals is pre-sorted by MRC_START by the SQL SELECT statement.
-    while True:
-        row = mrna_dbase.fetchone()
-        if row == None:
-            break
-        assert(row[2] < row[3]) # Make sure [start_pos] < [end_pos]
+    mrna_to_cds = {}
+    # mrna_to_cds: (Dict)
+    #   key: (mrna_geneid, mrc_transcript_no)
+    #   val: [(cds_start, cds_stop), (cds_start, cds_stop), ...]
+
+
+    # homologene_to_mrna
+#    mrna_dbase = dbase.cursor()
+#    mrna_dbase.execute("")
+#    mrna_dbase.close()
+
+    # mrna_to_seq
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_TAXID, GCS_LOCALTAXID, "
+                       "GCS_COMPLEMENT, GCS_START, GCS_STOP "
+                       "FROM PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
+                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID "
+                       "AND ROWNUM < 100")
+    for row in mrna_dbase.fetchall():
+        assert(row[4] < row[5]) # Start < Stop
+        mrna_to_seq[row[0]] = tuple(row[1:])
+    mrna_dbase.close()
+
+
+    # mrna_to_exons
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
+                       "FROM PAP.MRNA_COORDINATES ORDER BY MRC_GENEID, MRC_START "
+                       "AND ROWNUM < 100")
+    for row in mrna_dbase.fetchall():
+        assert(row[2] < row[3]) # Start < Stop
         mrna_coords.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
+
+    exit()
+
+    # mrna_to_cds
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("")
+    mrna_dbase.close()
+
+    
     
 
     print "Validating exon bounds."
