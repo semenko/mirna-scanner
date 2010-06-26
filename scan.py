@@ -334,8 +334,7 @@ def main():
     mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
                        "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
                        "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID "
-                       "AND ROWNUM < 50000 "
-                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO")
+                       "AND ROWNUM < 100 ")
     for row in SQLGenerator(mrna_dbase):
         homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
     mrna_dbase.close()
@@ -344,13 +343,13 @@ def main():
     # mrna_to_seq
     print "Populating: mrna_to_seq"
     mrna_dbase = dbase.cursor()
-    mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_TAXID, GCS_LOCALTAXID, "
-                       "GCS_COMPLEMENT, GCS_START, GCS_STOP "
+    mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_CHROMOSOME, GCS_TAXID, "
+                       "GCS_LOCALTAXID, GCS_COMPLEMENT, GCS_START, GCS_STOP "
                        "FROM PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
                        "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID "
-                       "AND ROWNUM < 50000")
+                       "AND ROWNUM < 100")
     for row in SQLGenerator(mrna_dbase):
-        assert(row[4] < row[5]) # Start < Stop
+        assert(row[5] < row[6]) # Start < Stop
         mrna_to_seq[row[0]] = tuple(row[1:])
     mrna_dbase.close()
     print "Populated.\n"
@@ -361,7 +360,6 @@ def main():
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
                        "FROM PAP.MRNA_COORDINATES "
-                       "WHERE ROWNUM < 50000 "
                        "ORDER BY MRC_START")
     for row in SQLGenerator(mrna_dbase):
         try:
@@ -380,11 +378,13 @@ def main():
                        "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
                        "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
                        "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
-                       "AND ROWNUM < 50000 "
                        "ORDER BY CDS_START")
     for row in SQLGenerator(mrna_dbase):
-        assert(row[2] < row[3]) # Start < Stop
-        mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+        try:
+            assert(row[2] < row[3]) # Start < Stop
+            mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+        except AssertionError:
+            print "\tExcluding strangely small mRNA CDS: %s, %s [geneid, length]" % (row[0], (row[3]-row[2]))
     mrna_dbase.close()
     print "Populated.\n"
     sanity_overlap_check(mrna_to_cds)
@@ -403,51 +403,24 @@ def main():
     # AT SOME POINT!!!!!!!!!!!!!!
     # Take reverse complement of sequence via PAP.GENE_COORDINATES
 
-    quit()
-
     # We work on one miRNA cluster at a time, and loop over all sequence clusters
-    for mirid, sepecies_mirna_pairs in mirna_queries.iteritems():
+    for micro_rna_id, micro_rna_clusters in mirna_queries.iteritems():
         """ Loop over mirna_queries dict handing out clusters of miRNAs to threads. """
 
-        #'abc' = [(species, atagaga), (species2, tagatataccc)]
-        #-> span rnahybrid thread
-        #-> input queue = miRNA
+        for homologene_id, mrna_list in homologene_to_mrna.iteritems():
+            for pair in mrna_list:
+                # Get sequence data for the entire gene region and let python split it up
+                seq_data = mrna_to_seq[pair[0]]
+                
+                seq_db = dbase.cursor()
+                # ges_loadid ges_chromosome ges_taxid ges_localtaxid, ges_sequence ges_masked_sequence
+                seq_db.execute("SELECT GES_SEQUENCE FROM PAP.GENOMIC_SEQUENCE WHERE ROWNUM = 1")
+                row = seq_db.fetchone()
+                print row[0].read(1,8)
+                seq_db.close()
         
         
-        ## DATABASE SELECT HERE
-        work_left = True
-        while True:
-            """ This loop runs until we've exhausted all sequences for the given mmo_mirid cluster. """
-            
-            while work_left == True:
-                """ input_queue filling loop """
 
-                # Fill work queue with mirna_cluster:sequence_cluster pairs
-                # We loop over all sequence clusters, until our queue is full
-
-                # keep advancing in database record
-                mirna_sql = mirna_db_cursor.fetchone()
-                if mirna_sql == None:
-                    # We must be out of input miRNA ortholog groups
-                    mirna_db_cursor.close()
-                    work_left = False # Stop trying to fill the input_queue
-                    break
-
-        # Populate 
-
-        print "\n\tUTR target: \t %s (entrez id)\n" % t_prm_sql[0]
-
-        miRNAcursor = dbase.cursor()
-        miRNAcursor.execute("SELECT DOM_MATURESEQ FROM DIST_ORTHOLOG_MIRNA WHERE DOM_LOCAL_TAXID = "
-                            + str(speciesMap[species]) + " LIMIT " + speed_limit)
-
-        while True:
-            rna_sql = miRNAcursor.fetchone()
-            if rna_sql == None:
-                miRNAcursor.close()
-                break
-
-            # Put in queue
             queue.put((t_prm_sql[0], t_prm_sql[1], rna_sql[0]))
             #rnahybrid(options.noCache, species, t_prm_sql[0], t_prm_sql[1], rna_sql[0])
                 
