@@ -277,11 +277,11 @@ def main():
     # limit statement means this second query makes things more flexible with MySQL environments.
     mirna_dbcursor.execute("SELECT MMO_MATUREMIRID, MMO_SPECIES, MMO_MATURESEQ "
                            "FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
-                           "WHERE MMO_MATURESEQ IS NOT NULL ORDER BY 1, 2")
-    for row in mirna_dbcursor.fetchall():
+                           "WHERE MMO_MATURESEQ IS NOT NULL")
+    for row in SQLGenerator(mirna_dbcursor):
         if row[0] in mirna_mirid_queries:
-            # Sanity check that miRNAs are actual sequences
             try:
+                # Sanity check that miRNAs are actual sequences, free of 'N'
                 assert(re.match("^[AUTGC]*$", row[2], re.IGNORECASE))
                 mirna_queries.setdefault(row[0], set()).add((row[1], row[2]))
             except AssertionError:
@@ -334,7 +334,7 @@ def main():
     mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
                        "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
                        "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID "
-                       "AND ROWNUM < 1000 "
+                       "AND ROWNUM < 50000 "
                        "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO")
     for row in SQLGenerator(mrna_dbase):
         homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
@@ -348,7 +348,7 @@ def main():
                        "GCS_COMPLEMENT, GCS_START, GCS_STOP "
                        "FROM PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
                        "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID "
-                       "AND ROWNUM < 1000")
+                       "AND ROWNUM < 50000")
     for row in SQLGenerator(mrna_dbase):
         assert(row[4] < row[5]) # Start < Stop
         mrna_to_seq[row[0]] = tuple(row[1:])
@@ -361,14 +361,14 @@ def main():
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
                        "FROM PAP.MRNA_COORDINATES "
-                       "WHERE ROWNUM < 1000 "
+                       "WHERE ROWNUM < 50000 "
                        "ORDER BY MRC_START")
     for row in SQLGenerator(mrna_dbase):
         try:
             assert(row[2] < row[3]) # Start < Stop
             mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
         except AssertionError:
-            print "\tExcluding strangely small mRNA exon: %s, %s [geneid, length]" % (row[0], (row[5]-row[4]))
+            print "\tExcluding strangely small mRNA exon: %s, %s [geneid, length]" % (row[0], (row[3]-row[2]))
     mrna_dbase.close()
     print "Populated.\n"
     sanity_overlap_check(mrna_to_exons)
@@ -380,7 +380,7 @@ def main():
                        "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
                        "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
                        "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
-                       "AND ROWNUM < 100 "
+                       "AND ROWNUM < 50000 "
                        "ORDER BY CDS_START")
     for row in SQLGenerator(mrna_dbase):
         assert(row[2] < row[3]) # Start < Stop
