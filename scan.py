@@ -7,9 +7,24 @@
 #
 # This software is released under the MIT License <http://www.opensource.org/licenses/mit-license.php>
 #
-
 """ Perform multithreaded RNAhybrid alignments of miRNA orthologs to CD-masked ortholog clusters. """
 
+from __future__ import generators
+import os
+import cPickle as pickle
+import cx_Oracle
+import marshal
+import threading
+import Queue
+import re
+import subprocess
+import time
+import zlib
+from optparse import OptionParser, OptionGroup
+
+### -------------------------------
+### Config Options
+### -------------------------------
 
 
 # Relative (or full) path to RNAhybrid
@@ -31,22 +46,15 @@ ORACLE_PWFILE = '.oracle_password'
 
 
 
-
-### ---------------------------------------------
-### Imports
-### ---------------------------------------------
-
-import os
-import cPickle as pickle
-import cx_Oracle
-import marshal
-import threading
-import Queue
-import re
-import subprocess
-import time
-import zlib
-from optparse import OptionParser, OptionGroup
+def SQLGenerator(cursor, arraysize = 1000):
+    """ Don't fetchall (given ram) or fetchone (given net), so fetchmany! """
+    
+    while True:
+        results = cursor.fetchmany(arraysize)
+        if not results:
+            break
+        for result in results:
+            yield result
 
 ### ---------------------------------------------
 ### Exceptions
@@ -321,42 +329,52 @@ def main():
 
 
     # homologene_to_mrna
+    print "Populating: homologene_to_mrna"
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
                        "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
                        "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID "
                        "AND ROWNUM < 1000 "
                        "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO")
-    for row in mrna_dbase.fetchall():
+    for row in SQLGenerator(mrna_dbase):
         homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
     mrna_dbase.close()
+    print "Populated.\n"
 
     # mrna_to_seq
+    print "Populating: mrna_to_seq"
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_TAXID, GCS_LOCALTAXID, "
                        "GCS_COMPLEMENT, GCS_START, GCS_STOP "
                        "FROM PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
                        "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID "
-                       "AND ROWNUM < 100")
-    for row in mrna_dbase.fetchall():
+                       "AND ROWNUM < 1000")
+    for row in SQLGenerator(mrna_dbase):
         assert(row[4] < row[5]) # Start < Stop
         mrna_to_seq[row[0]] = tuple(row[1:])
     mrna_dbase.close()
+    print "Populated.\n"
 
 
     # mrna_to_exons
+    print "Populating: mrna_to_exons"
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
                        "FROM PAP.MRNA_COORDINATES "
-                       "WHERE ROWNUM < 100 "
+                       "WHERE ROWNUM < 1000 "
                        "ORDER BY MRC_START")
-    for row in mrna_dbase.fetchall():
-        assert(row[2] < row[3]) # Start < Stop
-        mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+    for row in SQLGenerator(mrna_dbase):
+        try:
+            assert(row[2] < row[3]) # Start < Stop
+            mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+        except AssertionError:
+            print "\tExcluding strangely small mRNA exon: %s, %s [geneid, length]" % (row[0], (row[5]-row[4]))
     mrna_dbase.close()
+    print "Populated.\n"
     sanity_overlap_check(mrna_to_exons)
 
     # mrna_to_cds
+    print "Populating: mrna_to_cds"
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT MRC_GENEID, MRC_TRANSCRIPT_NO, CDS_START, CDS_STOP "
                        "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
@@ -364,26 +382,28 @@ def main():
                        "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
                        "AND ROWNUM < 100 "
                        "ORDER BY CDS_START")
-    for row in mrna_dbase.fetchall():
+    for row in SQLGenerator(mrna_dbase):
         assert(row[2] < row[3]) # Start < Stop
         mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
+    print "Populated.\n"
     sanity_overlap_check(mrna_to_cds)
 
-    exit()
-    
 
+    
     ### ---------------------------------------------
     ### First, start looping to populate our input_queue for threads to work
     ### Then, when filled, keep topping it off, while we periodically poll output_queue
     ### ---------------------------------------------
-
+    
     input_queue = Queue.Queue(maxsize = 1000)  # A threadsafe producer/consumer Queue
     output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid
 
     # REMINDER:
     # AT SOME POINT!!!!!!!!!!!!!!
     # Take reverse complement of sequence via PAP.GENE_COORDINATES
+
+    quit()
 
     # We work on one miRNA cluster at a time, and loop over all sequence clusters
     for mirid, sepecies_mirna_pairs in mirna_queries.iteritems():
