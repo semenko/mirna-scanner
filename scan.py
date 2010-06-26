@@ -156,6 +156,20 @@ def load_cache(module, cachedir, cachekey):
     # We don't catch it, since it's something you should look at.
 
 
+def sanity_overlap_check(in_dict):
+    """ Sanity check to ensure start/stop positions don't overlap. """
+    print "Validating bounds."
+    for value in in_dict.itervalues():
+        start_old = 0
+        end_old = 1
+        for item in value:
+            assert((item[0] > start_old) and (item[1] > start_old))
+            assert((item[0] > end_old) and (item[1] > end_old))
+            start_old = item[0]
+            end_old = item[1]
+    print "Validated.\n"
+
+
 ### ---------------------------------------------
 ### The main() function. Called first.
 ### ---------------------------------------------    
@@ -326,35 +340,31 @@ def main():
     # mrna_to_exons
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
-                       "FROM PAP.MRNA_COORDINATES ORDER BY MRC_GENEID, MRC_START "
-                       "AND ROWNUM < 100")
+                       "FROM PAP.MRNA_COORDINATES "
+                       "WHERE ROWNUM < 100 "
+                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START")
     for row in mrna_dbase.fetchall():
         assert(row[2] < row[3]) # Start < Stop
-        mrna_coords.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+        mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
-
-    exit()
+    sanity_overlap_check(mrna_to_exons)
 
     # mrna_to_cds
     mrna_dbase = dbase.cursor()
-    mrna_dbase.execute("")
+    mrna_dbase.execute("SELECT DISTINCT MRC_GENEID, MRC_TRANSCRIPT_NO, CDS_START, CDS_STOP "
+                       "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
+                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
+                       "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
+                       "AND ROWNUM < 100 "
+                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, CDS_START")
+    for row in mrna_dbase.fetchall():
+        assert(row[2] < row[3]) # Start < Stop
+        mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
+    sanity_overlap_check(mrna_to_cds)
 
+    exit()
     
-    
-
-    print "Validating exon bounds."
-    # Sanity check code to ensure exon positions don't overlap.
-    for value in mrna_coords.itervalues():
-        start_old = 0
-        end_old = 1
-        for item in value:
-            assert((item[0] > start_old) and (item[1] > start_old))
-            assert((item[0] > end_old) and (item[1] > end_old))
-            start_old = item[0]
-            end_old = item[1]
-    print "Validated.\n"
-
 
     ### ---------------------------------------------
     ### First, start looping to populate our input_queue for threads to work
