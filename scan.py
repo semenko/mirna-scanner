@@ -300,8 +300,9 @@ def main():
     # *** There are a few data structures here to take note of. ***
     homologene_to_mrna = {}
     # homologene_to_mrna: (Dict)
-    #   key: hge_homologeneid
-    #   val: [(mrc_geneid, mrc_transcript_no), (mrc_geneid, mrc_transcript_no) ...]
+    #   key: hge_homologeneid # TODO: Double-check that not all HGE_GENEIDs map to MRC_GENEIDs
+    #                         # Homologene has 244,950 rows, while the select has only 67,520
+    #   val: set((mrc_geneid, mrc_transcript_no), (mrc_geneid, mrc_transcript_no), ...)
 
     mrna_to_seq = {}
     # mrna_to_seq: (Dict)
@@ -320,9 +321,15 @@ def main():
 
 
     # homologene_to_mrna
-#    mrna_dbase = dbase.cursor()
-#    mrna_dbase.execute("")
-#    mrna_dbase.close()
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
+                       "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
+                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID "
+                       "AND ROWNUM < 1000 "
+                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO")
+    for row in mrna_dbase.fetchall():
+        homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
+    mrna_dbase.close()
 
     # mrna_to_seq
     mrna_dbase = dbase.cursor()
@@ -342,7 +349,7 @@ def main():
     mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
                        "FROM PAP.MRNA_COORDINATES "
                        "WHERE ROWNUM < 100 "
-                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START")
+                       "ORDER BY MRC_START")
     for row in mrna_dbase.fetchall():
         assert(row[2] < row[3]) # Start < Stop
         mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
@@ -356,7 +363,7 @@ def main():
                        "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
                        "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
                        "AND ROWNUM < 100 "
-                       "ORDER BY MRC_GENEID, MRC_TRANSCRIPT_NO, CDS_START")
+                       "ORDER BY CDS_START")
     for row in mrna_dbase.fetchall():
         assert(row[2] < row[3]) # Start < Stop
         mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
