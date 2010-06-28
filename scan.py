@@ -386,6 +386,7 @@ def main():
                        "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
                        "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
                        "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
+                       "AND ROWNUM < 100 "
                        "ORDER BY CDS_START")
     for row in SQLGenerator(mrna_dbase):
         try:
@@ -426,7 +427,8 @@ def main():
                 # We add one to the sequence length since gcs_stop is strangely /inclusive/
                 #  i.e. To select BP #70, gcs_start = 70 AND gcs_stop = 70
                 seq_length = gcs_stop - gcs_start + 1
-                
+
+                # TODO: Bind params, and stop reopening this damn cursor.
                 seq_db = dbase.cursor()
                 # Extract the raw sequence from PAP.GENOMIC_SEQUENCE, which contains:
                 #  > ges_loadid, ges_chromosome, ges_taxid, ges_localtaxid, ges_sequence, ges_masked_sequence
@@ -435,15 +437,15 @@ def main():
                 # cx_Oracle can also handle CLOB objects directly, e.g.: row[0].read(1, 100) 
                 seq_db.execute("SELECT SUBSTR(GES_SEQUENCE," + str(gcs_start) + ", " + str(seq_length) + ") "
                                "FROM PAP.GENOMIC_SEQUENCE WHERE GES_TAXID = '" + str(gcs_taxid) + "' AND "
-                               "GES_CHROMOSOME = '" + str(gcs_chromosome) + "'")
-                whole_sequence = seq_db.fetchone()
-
-                # Some sequence sanity checks.
+                               "GES_CHROMOSOME = '" + str(gcs_chromosome) + "'")                
+                seq_clob = seq_db.fetchone()[0]
                 assert(seq_db.rowcount == 1)
-                assert(len(whole_sequence) == seq_length)
-                assert(re.match("^[ATGC]*$", whole_sequence, re.IGNORECASE))
                 
-                # Note that cx_Oracle can also handle CLOBs directly, e.g.: row[0].read(1, 100)
+                # Convert CLOB to STR for some easier handling
+                whole_sequence = str(seq_clob)
+                assert(len(whole_sequence) == seq_length)
+                assert(re.match("^[ATGC]*$", whole_sequence, re.IGNORECASE)
+
 
                 seq_db.close()
 
