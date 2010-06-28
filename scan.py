@@ -260,95 +260,48 @@ def main():
     ### First, start looping to populate our work_queue for threads to work
     ### Then, when filled, keep topping it off, while we periodically poll results_queue
     ### ---------------------------------------------
+
+    work_queue_size = 1000
+    low_water_mark = 900 # Size at which we refill the work_queue
+    fillup_increment = 50 # and how much to fill it by
+    critical_low_mark = 500 # Size at which we stall threads, as work queue is too small!
     
-    work_queue = Queue.Queue(maxsize = 1000)  # A threadsafe producer/consumer Queue
+    result_queue_size = 1000
+    high_water_mark = 100 # Size at which we send off data to collector (or write to disk)
+    send_increment = 50 # how many results to send off/write at a given time
+    critical_high_mark = 500 # Site at which we stall threads, as result_queue is too big!
+
+    stall_interval = 1 # How long (secs) to stall threads for (hopefully not necessary!)
+    
+    assert(low_water_mark < work_queue_size)
+    assert(fillup_increment < (work_queue_size - low_water_mark))
+    _out_of_work = False
+
+    work_queue = Queue.Queue(maxsize = work_queue_size)  # A threadsafe producer/consumer Queue
     # Contents:
     # (micro_rna_id, micro_rna_clusters, homologene_id, homolog_cluster)
     # Reminder: micro_rna_clusters = ((local_taxid, microrna_seq), ...)
 
-    results_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid
+    results_queue = Queue.Queue(maxsize = result_queue_size) # Same, but for product of RNAhybrid
 
-
+    # WARNING: Queue calls can and /will/ block! Be careful!
     while True:
-        # WARNING: Queue calls can and will block!
-        while work_queue.full() == False:
-            # We call a generator to keep our work_queue full
-            pass
+        while (work_queue.qsize() < low_water_mark) and (_out_of_work == False):
+            # We call a generator to keep our work_queue mostly full
+            for _ in range(fill_up_increment):
+                try:
+                    work_queue.add(_get_item_for_work_queue())
+                except NoMoreWork:
+                    print "Out of work: Waiting for work_queue to be emptied by threads ..."
+                    _out_of_work = True
 
-        while result_queue.qsize() > 10:
+        while result_queue.qsize() > high_water_mark:
+            if result_queue.qsize() > critical_high_mark:
+                print "WARN: Results queue is too big! Something is wrong!"
+                _do_insert_stall(work_queue, stall_interval)
             # Send some results off to the collector, or write them to disk.
-            pass
-
-    # We work on one miRNA cluster at a time, and loop over all sequence clusters
-    for micro_rna_id, micro_rna_clusters in mirna_queries.iteritems():
-        """ Loop over mirna_queries dict handing out clusters of miRNAs to threads. """
-
-        print "Populating queue."
-        count = 0
-        # Loop over every Homologene=>(mrna_geneid, mrna_transcript_no)
-        for hge_homologeneid, _mrna_list in homologene_to_mrna.iteritems():
-            # homolog_cluster will get added to the input queue
-            # This is a dict, rather than a simpler structure, so the threads can lookup
-            # matching localtaxids for RNAhybrid comparisons.
-            #
-            # Key: gcs_localtaxid
-            # Value: (mrc_geneid, mrc_transcript_no, exon_seq)
-            homolog_cluster = {}
+            results_queue.get()
             
-            # For each mRNA, lookup sequence (this is transcript no. agnostic)
-            for mrc_geneid, mrc_transcript_no in _mrna_list:
-                # Get sequence data for the entire gene
-                gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop = mrna_to_seq[mrc_geneid]
-
-                # We add one to the sequence length since gcs_stop is strangely /inclusive/
-                #  i.e. To select BP #70, gcs_start = 70 AND gcs_stop = 70
-                seq_length = gcs_stop - gcs_start + 1
-
-                # TODO: Bind params, and stop reopening this damn cursor.
-                seq_db = dbase.cursor()
-                # Extract the raw sequence from PAP.GENOMIC_SEQUENCE, which contains:
-                #  > ges_loadid, ges_chromosome, ges_taxid, ges_localtaxid, ges_sequence, ges_masked_sequence
-                #
-                # Note: Avoid DBMS_LOB. functions, which get quirky with large result sets.
-                # cx_Oracle can also handle CLOB objects directly, e.g.: row[0].read(1, 100) 
-                seq_db.execute("SELECT SUBSTR(GES_SEQUENCE," + str(gcs_start) + ", " + str(seq_length) + ") "
-                               "FROM PAP.GENOMIC_SEQUENCE WHERE GES_TAXID = '" + str(gcs_taxid) + "' AND "
-                               "GES_CHROMOSOME = '" + str(gcs_chromosome) + "'")                
-                seq_clob = seq_db.fetchone()[0]
-                assert(seq_db.rowcount == 1)
-                
-                # Convert CLOB to STR for some easier handling
-                raw_seq = str(seq_clob)
-                assert(len(raw_seq) == seq_length)
-                # Make sure we got actual base pairs, not '-' or 'N'
-                assert(re.match("^[ATGC]*$", raw_seq, re.IGNORECASE))
-                
-                seq_db.close()
-
-                # Check if strand is complement, and take reverse complement.
-                if gcs_complement == True:
-                    raw_seq = revComplement(raw_seq)
-                    
-                # Do some list slicing to get only the exon sequence.
-                exons = []
-                for exon_start, exon_stop in mrna_to_exons[(mrc_geneid, mrc_transcript_no)]:
-                    # We have to offset these by gcs_start
-                    # We also add one to compensate for python being [inclusive:exclusive]
-                    exons.append(raw_seq[exon_start-gcs_start:exon_stop-gcs_start+1])
-                exon_seq = ''.join(exons)
-
-                homolog_cluster[gcs_localtaxid] = (mrc_geneid, mrc_transcript_no, exon_seq)
-                print "Cluster one."
-
-            print "Adding to work queue."
-            print str(len(homolog_cluster))
-            work_queue.put(homolog_cluster)
-            count += 1
-            print "Added: %s" % count
-            
-            #rnahybrid(options.noCache, species, t_prm_sql[0], t_prm_sql[1], rna_sql[0])
-                
-    print "\nAll done!\n"
 
     print "Execution took: %s secs." % (time.time()-starttime)
 
@@ -517,6 +470,69 @@ def _get_mrna_to_cds(dbase):
     print "Populated.\n"
     return mrna_to_cds
 
-            
+
+def _get_item_for_work_queue(mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons):
+    """ A generator that yields one item at a time for the work queue. """
+    
+    # We work on one microRNA cluster at a time, and loop over all sequence clusters
+    for micro_rna_id, micro_rna_cluster in mirna_queries.iteritems():
+
+        # Loop over every Homologene=>(mrna_geneid, mrna_transcript_no)
+        for hge_homologeneid, _mrna_list in homologene_to_mrna.iteritems():
+            # homolog_cluster will get added to the input queue
+            # This is a dict, rather than a simpler structure, so the threads can lookup
+            # matching localtaxids for RNAhybrid comparisons.
+            #
+            # Key: gcs_localtaxid
+            # Value: (mrc_geneid, mrc_transcript_no, exon_seq)
+            homolog_cluster = {}
+
+            # For each mRNA, lookup sequence (this is transcript no. agnostic)
+            for mrc_geneid, mrc_transcript_no in _mrna_list:
+                # Get sequence data for the entire gene
+                gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop = mrna_to_seq[mrc_geneid]
+
+                # We add one to the sequence length since gcs_stop is strangely /inclusive/
+                #  i.e. To select BP #70, gcs_start = 70 AND gcs_stop = 70
+                seq_length = gcs_stop - gcs_start + 1
+
+                # TODO: Bind params, and stop reopening this damn cursor.
+                seq_db = dbase.cursor()
+                # Extract the raw sequence from PAP.GENOMIC_SEQUENCE, which contains:
+                #  > ges_loadid, ges_chromosome, ges_taxid, ges_localtaxid, ges_sequence, ges_masked_sequence
+                #
+                # Note: Avoid DBMS_LOB. functions, which get quirky with large result sets.
+                # cx_Oracle can also handle CLOB objects directly, e.g.: row[0].read(1, 100)
+                seq_db.execute("SELECT SUBSTR(GES_SEQUENCE," + str(gcs_start) + ", " + str(seq_length) + ") "
+                               "FROM PAP.GENOMIC_SEQUENCE WHERE GES_TAXID = '" + str(gcs_taxid) + "' AND "
+                               "GES_CHROMOSOME = '" + str(gcs_chromosome) + "'")
+                seq_clob = seq_db.fetchone()[0]
+                assert(seq_db.rowcount == 1)
+
+                # Convert CLOB to STR for some easier handling
+                raw_seq = str(seq_clob)
+                assert(len(raw_seq) == seq_length)
+                # Make sure we got actual base pairs, not '-' or 'N'
+                assert(re.match("^[ATGC]*$", raw_seq, re.IGNORECASE))
+
+                seq_db.close()
+
+                # Check if strand is complement, and take reverse complement.
+                if gcs_complement == True:
+                    raw_seq = revComplement(raw_seq)
+
+                # Do some list slicing to get only the exon sequence.
+                exons = []
+                for exon_start, exon_stop in mrna_to_exons[(mrc_geneid, mrc_transcript_no)]:
+                    # We have to offset these by gcs_start
+                    # We also add one to compensate for python being [inclusive:exclusive]
+                    exons.append(raw_seq[exon_start-gcs_start:exon_stop-gcs_start+1])
+                exon_seq = ''.join(exons)
+
+                homolog_cluster[gcs_localtaxid] = (mrc_geneid, mrc_transcript_no, exon_seq)
+
+            yield (micro_rna_id, micro_rna_cluster, homolog_cluster)
+
+
 if __name__ == "__main__":
     main()
