@@ -442,19 +442,25 @@ def main():
                 assert(seq_db.rowcount == 1)
                 
                 # Convert CLOB to STR for some easier handling
-                whole_sequence = str(seq_clob)
-                assert(len(whole_sequence) == seq_length)
-                assert(re.match("^[ATGC]*$", whole_sequence, re.IGNORECASE)
-
-
+                raw_seq = str(seq_clob)
+                assert(len(raw_seq) == seq_length)
+                assert(re.match("^[ATGC]*$", raw_seq, re.IGNORECASE))
+                
                 seq_db.close()
 
                 # Check if strand is complement, and take reverse complement.
                 if gcs_complement == True:
-                    print "OMG COMPLEMENT!"
-                    pass
-
-                print "Done!"
+                    raw_seq = revComplement(raw_seq)
+                    
+                # Do some list slicing to get only the exon sequence.
+                #[(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
+                exons = []
+                for exon_start, exon_stop in mrna_to_exons[(mrc_geneid, mrc_transcript_no)]:
+                    # We have to offset these by gcs_start
+                    # We also add one to compensate for python being [inclusive:exclusive]
+                    exons.append(raw_seq[exon_start-gcs_start:exon_stop-gcs_start+1])
+                exon_seq = ''.join(exons)
+                
                 exit()
         
         
