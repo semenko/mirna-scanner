@@ -292,7 +292,7 @@ def main():
 
     # WARNING: Queue calls can and /will/ block! Be careful!
     while True:
-        if debug == True:
+        if debug:
             print "work_queue size: %s" % str(work_queue.qsize())
             print "result_queue size: %s" % str(result_queue.qsize())
             time.sleep(1)
@@ -318,7 +318,7 @@ def main():
                 # Send some results off to the collector, or write them to disk.
                 result_queue.get()
 
-        if _out_of_work == True:
+        if _out_of_work:
             # First, wait for results_queue to be completely emptied
             print "All done!"
             break
@@ -377,7 +377,7 @@ def _get_microrna_data(dbase, range_given, startNum, stopNum):
 
     # We do some list slicing to get a range [if specified] of queries
     # This is so on a cluster, each machine can run over a selected few miRNAs
-    if range_given == True:
+    if range_given:
         mirna_mirid_queries = mirna_mirid_queries[startNum:stopNum]
     print "Targeting %s miRNAs orthologous clusters" % len(mirna_mirid_queries)
     
@@ -543,7 +543,7 @@ def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_s
                 seq_db.close()
 
                 # Check if strand is complement, and take reverse complement.
-                if gcs_complement == True:
+                if gcs_complement:
                     raw_seq = revComplement(raw_seq)
 
                 # Do some list slicing to get only the exon sequence.
