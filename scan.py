@@ -106,6 +106,7 @@ class RNAHybridThread(threading.Thread):
                 time.sleep(2)
                 ## Results contains:
                 ## (success_flag, invals, outvals)
+                results = 'abcdef'
                 self.__output_queue.put(results, True) # Block until a free slot is available.
                 
 
@@ -289,15 +290,17 @@ def main():
     result_queue = Queue.Queue(maxsize = result_queue_size) # Same, but for product of RNAhybrid
 
     debug = True
+    _first_run = True
 
     # WARNING: Queue calls can and /will/ block! Be careful!
     while True:
         if debug:
             print "work_queue size: %s" % str(work_queue.qsize())
-            print "result_queue size: %s" % str(result_queue.qsize())
+            print "result_queue size: %s\n" % str(result_queue.qsize())
             time.sleep(1)
 
         while (work_queue.qsize() < low_water_mark) and (_out_of_work == False):
+            print "Filling work queue."
             # We call a generator to keep our work_queue mostly full
             for _ in range(fillup_increment):
                 try:
@@ -307,6 +310,7 @@ def main():
                     _out_of_work = True
 
         while result_queue.qsize() > high_water_mark:
+            print "Draining result_queue."
             if result_queue.qsize() > critical_high_mark:
                 print "WARN: Result queue is too big! Something is wrong!"
                 _do_insert_stall(work_queue, stall_interval)
@@ -318,8 +322,18 @@ def main():
                 # Send some results off to the collector, or write them to disk.
                 result_queue.get()
 
+        if _first_run:
+            # First time we're running, so spawn threads
+            print "Spawning %s threads." % str(options.threads)
+            for i in range(options.threads):
+                thread = RNAHybridThread(i, work_queue, result_queue)
+                thread.daemon = True
+                thread.start()
+            _first_run = False
+
         if _out_of_work:
             # First, wait for results_queue to be completely emptied
+            # .join() on both queue AND thread!!
             print "All done!"
             break
             
@@ -498,6 +512,8 @@ def _do_insert_stall():
 
 def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons):
     """ A generator that yields one item at a time for the work queue. """
+
+    print "In generator main. THIS SHOULD HAPPEN ONCE"
     
     # We work on one microRNA cluster at a time, and loop over all sequence clusters
     for micro_rna_id, micro_rna_cluster in mirna_queries.iteritems():
