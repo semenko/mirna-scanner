@@ -236,104 +236,26 @@ def main():
     print "Connected to %s\n" % dbase.dsn
 
 
-    # This is a a dict of tuples, storing 
-    # mirna_queries[MIR_ID] = ((localtaxid, MMO_MATURESEQ), (localtaxid, MMO_MATURESEQ) ...)
+    ### ---------------------------------------------
+    # First, we get the microRNA clusters.
     mirna_queries = _get_microrna_data(dbase, range_given, options.startNum, options.stopNum)
 
-
     ### ---------------------------------------------
-    ### At this point, we have all the necessary miRNA clusters, so
-    ### it's time to build /mRNA/ clusters from the database.
-    ###
-    ### We do this by getting the coding positions from @@@@@@@@@@@@, then
-    ### selecting those regions from @@@@@@@@@@@.
-    ###
-    ### NOTE: Make sure to take the reverse compliment of the reverse strands.
-    ###
-    ### We preserve the gene id, and other meta data, so that later on, we can
-    ### see if a region was a coding region, UTR, etc.
-    ### ---------------------------------------------
-
-    # *** There are a few data structures here to take note of. ***
-    homologene_to_mrna = {}
-    # homologene_to_mrna: (Dict)
-    #   key: hge_homologeneid # TODO: Double-check that not all HGE_GENEIDs map to MRC_GENEIDs
-    #                         # Homologene has 244,950 rows, while the select has only 67,520
-    #   val: set((mrc_geneid, mrc_transcript_no), (mrc_geneid, mrc_transcript_no), ...)
-
-    mrna_to_seq = {}
-    # mrna_to_seq: (Dict)
-    #   key: mrc_geneid  # TODO: Double-check that mrc_transcript_no is NOT needed here
-    #   val: (gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop)
-
-    mrna_to_exons = {}
-    # mrna_to_exons: (Dict)
-    #   key: (mrc_geneid, mrc_transcript_no)
-    #   val: [(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
-
-    mrna_to_cds = {}
-    # mrna_to_cds: (Dict)
-    #   key: (mrna_geneid, mrc_transcript_no)
-    #   val: [(cds_start, cds_stop), (cds_start, cds_stop), ...]
-
-
-    # homologene_to_mrna
-    print "Populating: homologene_to_mrna"
-    mrna_dbase = dbase.cursor()
-    mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
-                       "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
-                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID "
-                       "AND ROWNUM < 100 ")
-    for row in SQLGenerator(mrna_dbase):
-        homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
-    mrna_dbase.close()
-    print "Populated.\n"
-
-    # mrna_to_seq
-    print "Populating: mrna_to_seq"
-    mrna_dbase = dbase.cursor()
-    mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_CHROMOSOME, GCS_TAXID, "
-                       "GCS_LOCALTAXID, GCS_COMPLEMENT, GCS_START, GCS_STOP "
-                       "FROM PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
-                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID "
-                       "AND ROWNUM < 100")
-    for row in SQLGenerator(mrna_dbase):
-        assert(row[5] < row[6]) # Start < Stop
-        mrna_to_seq[row[0]] = tuple(row[1:])
-    mrna_dbase.close()
-    print "Populated.\n"
-
-
-    # mrna_to_exons
-    print "Populating: mrna_to_exons"
-    mrna_dbase = dbase.cursor()
-    mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
-                       "FROM PAP.MRNA_COORDINATES "
-                       "ORDER BY MRC_START")
-    for row in SQLGenerator(mrna_dbase):
-        assert(row[2] < row[3] + 1) # Start < Stop + 1
-        mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
-    mrna_dbase.close()
-    print "Populated.\n"
+    # Then, we get everything necessary for mRNA data.
+    # Check out these functions for a description of these data structures.
+    homologene_to_mrna = _get_homologene_to_mrna(dbase)
+    mrna_to_seq = _get_mrna_to_seq(dbase)
+    
+    mrna_to_exons = _get_mrna_to_exons(dbase)
     sanity_overlap_check(mrna_to_exons)
 
-    # mrna_to_cds
-    print "Populating: mrna_to_cds"
-    mrna_dbase = dbase.cursor()
-    mrna_dbase.execute("SELECT DISTINCT MRC_GENEID, MRC_TRANSCRIPT_NO, CDS_START, CDS_STOP "
-                       "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
-                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
-                       "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
-                       "AND ROWNUM < 100 "
-                       "ORDER BY CDS_START")
-    for row in SQLGenerator(mrna_dbase):
-        assert(row[2] < row[3] + 1) # Start < Stop + 1
-        mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
-    mrna_dbase.close()
-    print "Populated.\n"
+    mrna_to_cds = _get_mrna_to_cds(dbase)
     sanity_overlap_check(mrna_to_cds)
+    ### ---------------------------------------------
 
-    
+
+    ### We do this by getting entire gene positions from PAP.GENE_COORDINATES, then
+    ### selecting only exons using PAP.MRNA_COORDINATES.
     ### ---------------------------------------------
     ### First, start looping to populate our work_queue for threads to work
     ### Then, when filled, keep topping it off, while we periodically poll results_queue
@@ -513,6 +435,87 @@ def _get_microrna_data(dbase, range_given, startNum, stopNum):
     print "miRNA data retreived.\n"
     
     return mirna_queries
+
+def _get_homologene_to_mrna(dbase):
+    """ Returns: homologene_to_mrna (dict) """
+    # homologene_to_mrna: (Dict)
+    #   key: hge_homologeneid # TODO: Double-check that not all HGE_GENEIDs map to MRC_GENEIDs
+    #                         # Homologene has 244,950 rows, while the select has only 67,520
+    #   val: set((mrc_geneid, mrc_transcript_no), (mrc_geneid, mrc_transcript_no), ...)
+    homologene_to_mrna = {}
+    print "Populating: homologene_to_mrna"
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
+                       "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
+                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID "
+                       "AND ROWNUM < 100 ")
+    for row in SQLGenerator(mrna_dbase):
+        homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
+    mrna_dbase.close()
+    print "Populated.\n"
+    return homologene_to_mrna
+
+
+def _get_mrna_to_seq(dbase):
+    """ Returns: mrna_to_seq (dict) """
+    # mrna_to_seq: (Dict)
+    #   key: mrc_geneid  # TODO: Double-check that mrc_transcript_no is NOT needed here
+    #   val: (gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop)
+    mrna_to_seq = {}
+    print "Populating: mrna_to_seq"
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_CHROMOSOME, GCS_TAXID, "
+                       "GCS_LOCALTAXID, GCS_COMPLEMENT, GCS_START, GCS_STOP "
+                       "FROM PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
+                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID "
+                       "AND ROWNUM < 100")
+    for row in SQLGenerator(mrna_dbase):
+        assert(row[5] < row[6]) # Start < Stop
+        mrna_to_seq[row[0]] = tuple(row[1:])
+    mrna_dbase.close()
+    print "Populated.\n"
+    return mrna_to_seq
+
+
+def _get_mrna_to_exons(dbase):
+    """ Returns: mrna_to_exons (dict) """
+    # mrna_to_exons: (Dict)
+    #   key: (mrc_geneid, mrc_transcript_no)
+    #   val: [(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
+    mrna_to_exons = {}
+    print "Populating: mrna_to_exons"
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
+                       "FROM PAP.MRNA_COORDINATES "
+                       "ORDER BY MRC_START")
+    for row in SQLGenerator(mrna_dbase):
+        assert(row[2] < row[3] + 1) # Start < Stop + 1
+        mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+    mrna_dbase.close()
+    print "Populated.\n"
+    return mrna_to_exons
+
+
+def _get_mrna_to_cds(dbase):
+    """ Returns: mrna_to_cds (dict) """
+    # mrna_to_cds: (Dict)
+    #   key: (mrna_geneid, mrc_transcript_no)
+    #   val: [(cds_start, cds_stop), (cds_start, cds_stop), ...]
+    mrna_to_cds = {}
+    print "Populating: mrna_to_cds"
+    mrna_dbase = dbase.cursor()
+    mrna_dbase.execute("SELECT DISTINCT MRC_GENEID, MRC_TRANSCRIPT_NO, CDS_START, CDS_STOP "
+                       "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
+                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
+                       "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
+                       "AND ROWNUM < 100 "
+                       "ORDER BY CDS_START")
+    for row in SQLGenerator(mrna_dbase):
+        assert(row[2] < row[3] + 1) # Start < Stop + 1
+        mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+    mrna_dbase.close()
+    print "Populated.\n"
+    return mrna_to_cds
 
             
 if __name__ == "__main__":
