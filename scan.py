@@ -146,7 +146,7 @@ def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
     return results
 
 ### ---------------------------------------------
-### Pickling (caching) code.
+### Caching code. # TODO: Use marshal instead.
 ### ---------------------------------------------
 def save_cache(module, cachedir, cachekey, item):
     """ Store something in a pickle cache. """
@@ -230,76 +230,16 @@ def main():
             parser.error("Invalid scan range.")
         range_given = True
 
-    # This is a dict mapping short species tags ('Hs','Cf') to TAXIDs.
-    # Note: These are /local/ TAXIDs via localtaxid_to_org (in cafeuser?)
-    localTaxMap = {'Hs': 7951, # Human
-                  'Pt': 7943, # Chimp
-                  'Cf': 7959, # Dog
-                  'Rn': 8385, # Rat
-                  'Gg': 7458, # Chicken
-                  'Mm': 8364} # Mouse
-
-    UCSCTaxMap = {'hg18': 'Hs', # Human
-                  'panTro2': 'Pt', # Chimp
-                  'canFam2': 'Cf', # Dog
-                  'rn4': 'Rn', # Rat
-                  'galGal3': 'Gg', # Chicken
-                  'mm9': 'Mm'} # Mouse
-
+    # Connect to Database
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
     dbase = cx_Oracle.connect(ORACLE_USERNAME, oracle_password, ORACLE_SERVER + ':1521/' + ORACLE_DB)
     print "Connected to %s\n" % dbase.dsn
 
-    # Get list of distinct orthologous groups.
-    mirna_id_dbcursor = dbase.cursor()
-    mirna_id_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
-                              "WHERE MMO_MATURESEQ IS NOT NULL "
-                              "AND MMO_SPECIES IN ('mm9', 'rn4', 'canFam2', 'hg18') "
-                              "ORDER BY 1")
-    # validated:
-    # where mmo_maturemirid in ('hsa-miR-124', 'hsa-miR-1', 'hsa-miR-373','hsa-miR-155', 'hsa-miR-30a','hsa-let-7b')
-    #  and mmo_species in ('mm9', 'rn4', 'canFam2', 'hg18')
-    mirna_mirid_queries = mirna_id_dbcursor.fetchall()
-    mirna_id_dbcursor.close()
-    
-    # (The list slicing is because fetchall() returns tuples.
-    mirna_mirid_queries = [x[0] for x in mirna_mirid_queries]
 
-    # We do some list slicing here to get a range [if specified] of queries
-    # This is so on a cluster, each machine can run over a selected few miRNAs    
-    if range_given == True:
-        mirna_mirid_queries = mirna_mirid_queries[options.startNum:options.stopNum]
-
-    print "Targeting %s miRNAs orthologous clusters" % len(mirna_mirid_queries)
-
-    
-    # Now that we have the list of miRNA orthologous clusters, make a dict of tuples
-    # corresponding to the miRNA values.
-    mirna_queries = {}
-    # This will look like:
+    # This is a a dict of tuples, storing 
     # mirna_queries[MIR_ID] = ((localtaxid, MMO_MATURESEQ), (localtaxid, MMO_MATURESEQ) ...)
+    mirna_queries = _get_microrna_data(dbase, range_given, options.startNum, options.stopNum)
 
-    mirna_dbcursor = dbase.cursor()
-    # This is an inelegant way to select only the MIRIDs we want, but Oracle's lack of a
-    # limit statement means this second query makes things more flexible with MySQL environments.
-    mirna_dbcursor.execute("SELECT MMO_MATUREMIRID, MMO_SPECIES, MMO_MATURESEQ "
-                           "FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
-                           "WHERE MMO_MATURESEQ IS NOT NULL "
-                           "AND MMO_SPECIES IN ('mm9', 'rn4', 'canFam2', 'hg18')")
-    for row in SQLGenerator(mirna_dbcursor):
-        if row[0] in mirna_mirid_queries:
-            try:
-                # Sanity check that miRNAs are actual sequences, free of 'N'
-                assert(re.match("^[AUTGC]*$", row[2], re.IGNORECASE))
-                # We convert MMO_SPECIES (e.g. 'canfam2') to a local taxid
-                mirna_queries.setdefault(row[0], set()).add((localTaxMap[UCSCTaxMap[row[1]]], row[2]))
-            except AssertionError:
-                print "\tIgnoring miRNA with 'N' or invalid char: %s, %s [mirid, species]" % (row[0], row[1])
-    mirna_dbcursor.close()
-
-    # Sanity check that should never fail (unless you've broken the SQL queries)
-    assert(len(mirna_mirid_queries) == len(mirna_queries))
-    print "miRNA data retreived.\n"
 
     ### ---------------------------------------------
     ### At this point, we have all the necessary miRNA clusters, so
@@ -371,8 +311,8 @@ def main():
                        "FROM PAP.MRNA_COORDINATES "
                        "ORDER BY MRC_START")
     for row in SQLGenerator(mrna_dbase):
-            assert(row[2] < row[3] + 1) # Start < Stop + 1
-            mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
+        assert(row[2] < row[3] + 1) # Start < Stop + 1
+        mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
     print "Populated.\n"
     sanity_overlap_check(mrna_to_exons)
@@ -489,6 +429,90 @@ def main():
     print "\nAll done!\n"
 
     print "Execution took: %s secs." % (time.time()-starttime)
+
+
+
+def _get_microrna_data(dbase, range_given, startNum, stopNum):
+    """ Retreive microRNA data
+
+        Args:
+           dbase: a database object
+           range_given: bool, take subset of miRNA ortholog groups, for
+                        distributed computing
+           startNum: start of range (implies range_given = True)
+           stopNum: end of range (implies range_given = True)
+           
+        Returns:
+          (dict) mirna_queries:
+             keys: MMO_MATUREMIRID
+             vals: ((localtaxid, MMO_MATURESEQ), (localtaxid, MMO_MATURESEQ) ...) """
+
+    # This is a dict mapping short species tags ('Hs','Cf') to TAXIDs.
+    # Note: These are /local/ TAXIDs via localtaxid_to_org (in cafeuser?)
+    localTaxMap = {'Hs': 7951, # Human
+                   'Pt': 7943, # Chimp
+                   'Cf': 7959, # Dog
+                   'Rn': 8385, # Rat
+                   'Gg': 7458, # Chicken
+                   'Mm': 8364} # Mouse
+    
+    UCSCTaxMap = {'hg18': 'Hs', # Human
+                  'panTro2': 'Pt', # Chimp
+                  'canFam2': 'Cf', # Dog
+                  'rn4': 'Rn', # Rat
+                  'galGal3': 'Gg', # Chicken
+                  'mm9': 'Mm'} # Mouse
+
+    # Get list of distinct orthologous groups.
+    mirna_id_dbcursor = dbase.cursor()
+    mirna_id_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
+                              "WHERE MMO_MATURESEQ IS NOT NULL "
+                              "AND MMO_SPECIES IN ('mm9', 'rn4', 'canFam2', 'hg18') "
+                              "ORDER BY 1")
+    # validated:
+    # where mmo_maturemirid in ('hsa-miR-124', 'hsa-miR-1', 'hsa-miR-373','hsa-miR-155', 'hsa-miR-30a','hsa-let-7b')
+    #  and mmo_species in ('mm9', 'rn4', 'canFam2', 'hg18')
+    mirna_mirid_queries = mirna_id_dbcursor.fetchall()
+    mirna_id_dbcursor.close()
+
+    # (The list slicing is because fetchall() returns tuples.
+    mirna_mirid_queries = [x[0] for x in mirna_mirid_queries]
+
+    # We do some list slicing to get a range [if specified] of queries
+    # This is so on a cluster, each machine can run over a selected few miRNAs
+    if range_given == True:
+        mirna_mirid_queries = mirna_mirid_queries[startNum:stopNum]
+    print "Targeting %s miRNAs orthologous clusters" % len(mirna_mirid_queries)
+    
+    # Now that we have the list of miRNA orthologous clusters, make a dict of tuples
+    # corresponding to the miRNA values.
+    mirna_queries = {}
+    # This will look like:
+    # mirna_queries[MIR_ID] = ((localtaxid, MMO_MATURESEQ), (localtaxid, MMO_MATURESEQ) ...)
+
+    mirna_dbcursor = dbase.cursor()
+    # This is an inelegant way to select only the MIRIDs we want, but Oracle's lack of a
+    # limit statement means this second query makes things more flexible with MySQL environments.
+    mirna_dbcursor.execute("SELECT MMO_MATUREMIRID, MMO_SPECIES, MMO_MATURESEQ "
+                           "FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
+                           "WHERE MMO_MATURESEQ IS NOT NULL "
+                           "AND MMO_SPECIES IN ('mm9', 'rn4', 'canFam2', 'hg18')")
+    for row in SQLGenerator(mirna_dbcursor):
+        if row[0] in mirna_mirid_queries:
+            try:
+                # Sanity check that miRNAs are actual sequences, free of 'N'
+                assert(re.match("^[AUTGC]*$", row[2], re.IGNORECASE))
+                # We convert MMO_SPECIES (e.g. 'canfam2') to a local taxid
+                mirna_queries.setdefault(row[0], set()).add((localTaxMap[UCSCTaxMap[row[1]]], row[2]))
+            except AssertionError:
+                print "\tIgnoring miRNA with 'N' or invalid char: %s, %s [mirid, species]" % (row[0], row[1])
+    mirna_dbcursor.close()
+
+    # Sanity check that should never fail (unless you've broken the SQL queries)
+    assert(len(mirna_mirid_queries) == len(mirna_queries))
+    print "miRNA data retreived.\n"
+    
+    return mirna_queries
 
             
 if __name__ == "__main__":
