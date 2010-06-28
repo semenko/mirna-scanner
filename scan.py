@@ -71,6 +71,10 @@ class RNAHybridError(Exception):
     """ Thrown when RNAhybrid dies. """
     pass
 
+class NoMoreWork(Exception):
+    """ Thrown when we have no more work to do! :P """
+    pass
+
 
 class RNAHybridThread(threading.Thread):
     """ The worker thread for RNAhybrid. """
@@ -258,7 +262,7 @@ def main():
     ### selecting only exons using PAP.MRNA_COORDINATES.
     ### ---------------------------------------------
     ### First, start looping to populate our work_queue for threads to work
-    ### Then, when filled, keep topping it off, while we periodically poll results_queue
+    ### Then, when filled, keep topping it off, while we periodically poll result_queue
     ### ---------------------------------------------
 
     work_queue_size = 1000
@@ -268,7 +272,7 @@ def main():
     
     result_queue_size = 1000
     high_water_mark = 100 # Size at which we send off data to collector (or write to disk)
-    send_increment = 50 # how many results to send off/write at a given time
+    drain_increment = 50 # how many results to send off/write at a given time
     critical_high_mark = 500 # Site at which we stall threads, as result_queue is too big!
 
     stall_interval = 1 # How long (secs) to stall threads for (hopefully not necessary!)
@@ -282,25 +286,43 @@ def main():
     # (micro_rna_id, micro_rna_clusters, homologene_id, homolog_cluster)
     # Reminder: micro_rna_clusters = ((local_taxid, microrna_seq), ...)
 
-    results_queue = Queue.Queue(maxsize = result_queue_size) # Same, but for product of RNAhybrid
+    result_queue = Queue.Queue(maxsize = result_queue_size) # Same, but for product of RNAhybrid
+
+    debug = True
 
     # WARNING: Queue calls can and /will/ block! Be careful!
     while True:
+        if debug == True:
+            print "work_queue size: %s" % str(work_queue.qsize())
+            print "result_queue size: %s" % str(result_queue.qsize())
+            time.sleep(1)
+
         while (work_queue.qsize() < low_water_mark) and (_out_of_work == False):
             # We call a generator to keep our work_queue mostly full
-            for _ in range(fill_up_increment):
+            for _ in range(fillup_increment):
                 try:
-                    work_queue.add(_get_item_for_work_queue())
+                    work_queue.put(_get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons))
                 except NoMoreWork:
                     print "Out of work: Waiting for work_queue to be emptied by threads ..."
                     _out_of_work = True
 
         while result_queue.qsize() > high_water_mark:
             if result_queue.qsize() > critical_high_mark:
-                print "WARN: Results queue is too big! Something is wrong!"
+                print "WARN: Result queue is too big! Something is wrong!"
                 _do_insert_stall(work_queue, stall_interval)
-            # Send some results off to the collector, or write them to disk.
-            results_queue.get()
+            if (work_queue.qsize() < critical_low_mark) and (_out_of_work == False):
+                print "WARN: Work queue is too small! Something is wrong!"
+                _do_insert_stall(work_queue, stall_interval)
+                
+            for _ in range(drain_increment):
+                # Send some results off to the collector, or write them to disk.
+                result_queue.get()
+
+        if _out_of_work == True:
+            # First, wait for results_queue to be completely emptied
+            print "All done!"
+            break
+            
             
 
     print "Execution took: %s secs." % (time.time()-starttime)
@@ -470,8 +492,11 @@ def _get_mrna_to_cds(dbase):
     print "Populated.\n"
     return mrna_to_cds
 
+def _do_insert_stall():
+    print "Stalling threads."
+    
 
-def _get_item_for_work_queue(mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons):
+def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons):
     """ A generator that yields one item at a time for the work queue. """
     
     # We work on one microRNA cluster at a time, and loop over all sequence clusters
@@ -532,6 +557,8 @@ def _get_item_for_work_queue(mirna_queries, homologene_to_mrna, mrna_to_seq, mrn
                 homolog_cluster[gcs_localtaxid] = (mrc_geneid, mrc_transcript_no, exon_seq)
 
             yield (micro_rna_id, micro_rna_cluster, homolog_cluster)
+
+    raise NoMoreWork('No more work to do.')
 
 
 if __name__ == "__main__":
