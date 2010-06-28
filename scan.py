@@ -56,6 +56,14 @@ def SQLGenerator(cursor, arraysize = 1000):
         for result in results:
             yield result
 
+
+REVCOMP = {'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N'}
+
+def revComplement(sequence):
+    """ Return the reverse complement of a sequence. """
+    return ''.join([REVCOMP[bp] for bp in sequence[::-1]])
+
+
 ### ---------------------------------------------
 ### Exceptions
 ### ---------------------------------------------
@@ -315,7 +323,7 @@ def main():
     mrna_to_seq = {}
     # mrna_to_seq: (Dict)
     #   key: mrc_geneid  # TODO: Double-check that mrc_transcript_no is NOT needed here
-    #   val: (gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop)
+    #   val: (gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop)
 
     mrna_to_exons = {}
     # mrna_to_exons: (Dict)
@@ -399,25 +407,53 @@ def main():
     input_queue = Queue.Queue(maxsize = 1000)  # A threadsafe producer/consumer Queue
     output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid
 
-    # REMINDER:
-    # AT SOME POINT!!!!!!!!!!!!!!
-    # Take reverse complement of sequence via PAP.GENE_COORDINATES
-
+    
     # We work on one miRNA cluster at a time, and loop over all sequence clusters
     for micro_rna_id, micro_rna_clusters in mirna_queries.iteritems():
         """ Loop over mirna_queries dict handing out clusters of miRNAs to threads. """
 
-        for homologene_id, mrna_list in homologene_to_mrna.iteritems():
-            for pair in mrna_list:
-                # Get sequence data for the entire gene region and let python split it up
-                seq_data = mrna_to_seq[pair[0]]
+        # Loop over every Homologene=>(mrna_geneid, mrna_transcript_no)
+        for hge_homologeneid, _mrna_list in homologene_to_mrna.iteritems():
+            # homolog_cluster will get added to the input queue
+            # Its elements are: (mrc_geneid, mrc_transcript_no, gcs_localtaxid, exon_sequence)
+            homolog_cluster = set()
+            
+            # For each mRNA, lookup sequence (this is transcript no. agnostic)
+            for mrc_geneid, mrc_transcript_no in _mrna_list:
+                # Get sequence data for the entire gene
+                gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop = mrna_to_seq[mrc_geneid]
+
+                # We add one to the sequence length since gcs_stop is strangely /inclusive/
+                #  i.e. To select BP #70, gcs_start = 70 AND gcs_stop = 70
+                seq_length = gcs_stop - gcs_start + 1
                 
                 seq_db = dbase.cursor()
-                # ges_loadid ges_chromosome ges_taxid ges_localtaxid, ges_sequence ges_masked_sequence
-                seq_db.execute("SELECT GES_SEQUENCE FROM PAP.GENOMIC_SEQUENCE WHERE ROWNUM = 1")
-                row = seq_db.fetchone()
-                print row[0].read(1,8)
+                # Extract the raw sequence from PAP.GENOMIC_SEQUENCE, which contains:
+                #  > ges_loadid, ges_chromosome, ges_taxid, ges_localtaxid, ges_sequence, ges_masked_sequence
+                #
+                # Note: Avoid DBMS_LOB. functions, which get quirky with large result sets.
+                # cx_Oracle can also handle CLOB objects directly, e.g.: row[0].read(1, 100) 
+                seq_db.execute("SELECT SUBSTR(GES_SEQUENCE," + str(gcs_start) + ", " + str(seq_length) + ") "
+                               "FROM PAP.GENOMIC_SEQUENCE WHERE GES_TAXID = '" + str(gcs_taxid) + "' AND "
+                               "GES_CHROMOSOME = '" + str(gcs_chromosome) + "'")
+                whole_sequence = seq_db.fetchone()
+
+                # Some sequence sanity checks.
+                assert(seq_db.rowcount == 1)
+                assert(len(whole_sequence) == seq_length)
+                assert(re.match("^[ATGC]*$", whole_sequence, re.IGNORECASE))
+                
+                # Note that cx_Oracle can also handle CLOBs directly, e.g.: row[0].read(1, 100)
+
                 seq_db.close()
+
+                # Check if strand is complement, and take reverse complement.
+                if gcs_complement == True:
+                    print "OMG COMPLEMENT!"
+                    pass
+
+                print "Done!"
+                exit()
         
         
 
