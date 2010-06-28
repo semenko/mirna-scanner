@@ -71,16 +71,15 @@ class RNAHybridError(Exception):
     """ Thrown when RNAhybrid dies. """
     pass
 
-class NoMoreWork(Exception):
-    """ Thrown when we have no more work to do! :P """
-    pass
+### ---------------------------------------------
 
 
 class RNAHybridThread(threading.Thread):
     """ The worker thread for RNAhybrid. """
 
-    def __init__(self, thread_num, input_queue, output_queue):
+    def __init__(self, thread_num, consume, input_queue, output_queue):
         self.thread_num = thread_num
+        self.consume = consume
         self.__input_queue = input_queue
         self.__output_queue = output_queue
         threading.Thread.__init__(self) # Remember to init our overridden base class
@@ -88,11 +87,12 @@ class RNAHybridThread(threading.Thread):
     def run(self):
         """ The workhorse of our thread. """
         while True:
-            task = self.__input_queue.get()
+            self.consume.wait() # Wait until the "consume" event is True
+            task = self.__input_queue.get(True) # Block until we get a task.
             if task is None:
                 # Nothing in the queue, so we're either done, or something bad has happened
                 # and the main thread can't fill the Queue fast enough.
-                print "Nothing in work queue: Thread %s dying." % self.thread_num
+                print "Nothing in work_queue: Thread %s dying." % self.thread_num
                 break
             else:
                 # Check to make sure the output queue isn't full.
@@ -101,7 +101,6 @@ class RNAHybridThread(threading.Thread):
                     print "Output queue is full! (Strange. Network issues?) Sleeping."
                     time.sleep(1)
                 # DO SOME WORK HERE
-                print "Doing work."
                 # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
                 time.sleep(2)
                 ## Results contains:
@@ -292,41 +291,46 @@ def main():
     debug = True
     _first_run = True
 
+    _work_queue_generator = _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons)
+
     # WARNING: Queue calls can and /will/ block! Be careful!
+    print "Work  | Result | Threads"
     while True:
-        if debug:
-            print "work_queue size: %s" % str(work_queue.qsize())
-            print "result_queue size: %s\n" % str(result_queue.qsize())
-            time.sleep(1)
+        print " %s \t  %s \t  %s " % (str(work_queue.qsize()), str(result_queue.qsize()), threading.active_count()-1)
+        time.sleep(1)
 
         while (work_queue.qsize() < low_water_mark) and (_out_of_work == False):
-            print "Filling work queue."
+            print "Filling work queue now."
             # We call a generator to keep our work_queue mostly full
             for _ in range(fillup_increment):
                 try:
-                    work_queue.put(_get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons))
-                except NoMoreWork:
+                    work_queue.put(_work_queue_generator.next())
+                except StopIteration:
                     print "Out of work: Waiting for work_queue to be emptied by threads ..."
                     _out_of_work = True
 
         while result_queue.qsize() > high_water_mark:
             print "Draining result_queue."
+            
+            # These queue checks are imperfect, but should never be triggered.
             if result_queue.qsize() > critical_high_mark:
                 print "WARN: Result queue is too big! Something is wrong!"
-                _do_insert_stall(work_queue, stall_interval)
+                consume_event.clear() # Stall threads.
             if (work_queue.qsize() < critical_low_mark) and (_out_of_work == False):
                 print "WARN: Work queue is too small! Something is wrong!"
-                _do_insert_stall(work_queue, stall_interval)
+                consume_event.clear() # Stall threads.
                 
             for _ in range(drain_increment):
                 # Send some results off to the collector, or write them to disk.
                 result_queue.get()
 
+
         if _first_run:
             # First time we're running, so spawn threads
             print "Spawning %s threads." % str(options.threads)
+            consume_event = threading.Event()
             for i in range(options.threads):
-                thread = RNAHybridThread(i, work_queue, result_queue)
+                thread = RNAHybridThread(i, consume_event, work_queue, result_queue)
                 thread.daemon = True
                 thread.start()
             _first_run = False
@@ -336,7 +340,8 @@ def main():
             # .join() on both queue AND thread!!
             print "All done!"
             break
-            
+
+        consume_event.set() # Let's go to work!
             
 
     print "Execution took: %s secs." % (time.time()-starttime)
@@ -506,18 +511,12 @@ def _get_mrna_to_cds(dbase):
     print "Populated.\n"
     return mrna_to_cds
 
-def _do_insert_stall():
-    print "Stalling threads."
-    
 
 def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons):
     """ A generator that yields one item at a time for the work queue. """
 
-    print "In generator main. THIS SHOULD HAPPEN ONCE"
-    
     # We work on one microRNA cluster at a time, and loop over all sequence clusters
     for micro_rna_id, micro_rna_cluster in mirna_queries.iteritems():
-
         # Loop over every Homologene=>(mrna_geneid, mrna_transcript_no)
         for hge_homologeneid, _mrna_list in homologene_to_mrna.iteritems():
             # homolog_cluster will get added to the input queue
@@ -573,8 +572,6 @@ def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_s
                 homolog_cluster[gcs_localtaxid] = (mrc_geneid, mrc_transcript_no, exon_seq)
 
             yield (micro_rna_id, micro_rna_cluster, homolog_cluster)
-
-    raise NoMoreWork('No more work to do.')
 
 
 if __name__ == "__main__":
