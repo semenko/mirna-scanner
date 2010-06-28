@@ -31,11 +31,10 @@ from optparse import OptionParser, OptionGroup
 RNAHYBRID_PATH = 'rnahybrid/src/RNAhybrid'
 
 # Where to store cold-cache data from RNAhybrid. This will be large (many GB).
-COLDCACHE = 'cache/'
+COLDCACHE = '/state/partition1/tmp/semenko-cache/'
 
-# Where to temporarily store rapidly churned cache data -- this should be a ram drive.
-# (Hint: Mount /dev/shm somewhere.)
-HOTCACHE = '/dev/shm/hot/'
+# Minimum cache size (in GB), otherwise cache will be disabled.
+MINCACHESIZE = 25
 
 # Database Settings
 ORACLE_SERVER = 'feservertest.wustl.edu'
@@ -100,9 +99,8 @@ class RNAHybridThread(threading.Thread):
                 while self.__output_queue.full():
                     print "Output queue is full! (Strange. Network issues?) Sleeping."
                     time.sleep(1)
-                # DO SOME WORK HERE
                 # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-                time.sleep(2)
+                
                 ## Results contains:
                 ## (success_flag, invals, outvals)
                 results = 'abcdef'
@@ -181,7 +179,7 @@ def sanity_overlap_check(in_dict):
     print "Validating bounds."
     for value in in_dict.itervalues():
         start_old = 0
-        end_old = 1
+        end_old = 0
         for item in value:
             assert((item[0] > start_old) and (item[1] > start_old))
             assert((item[0] > end_old) and (item[1] > end_old))
@@ -200,7 +198,7 @@ def main():
     starttime = time.time()
 
     # Check that RNAhybrid exists, and is executable
-    #assert(os.path.exists(RNAHYBRID_PATH) and os.access(RNAHYBRID_PATH, os.X_OK))
+    assert(os.path.exists(RNAHYBRID_PATH) and os.access(RNAHYBRID_PATH, os.X_OK))
 
     usage = "usage: %prog [OPTIONS]"
     parser = OptionParser(usage)
@@ -234,6 +232,19 @@ def main():
             parser.error("Invalid scan range.")
         range_given = True
 
+    # Do some caching checks
+    if not options.noCache:
+        # Make sure our directory exists
+        if not os.path.exists(COLDCACHE):
+            os.makedirs(COLDCACHE)
+        # And that we have at least 25 GB of storage space
+        space = os.statvfs(COLDCACHE)
+        if ((space.f_bavail * space.f_frsize) / (1024 ** 3)) < MINCACHESIZE:
+            print "Insufficient cache space: Disabling cache."
+            options.noCache = True
+
+    exit()
+
     # Connect to Database
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
     dbase = cx_Oracle.connect(ORACLE_USERNAME, oracle_password, ORACLE_SERVER + ':1521/' + ORACLE_DB)
@@ -253,8 +264,8 @@ def main():
     mrna_to_exons = _get_mrna_to_exons(dbase)
     sanity_overlap_check(mrna_to_exons)
 
-    mrna_to_cds = _get_mrna_to_cds(dbase)
-    sanity_overlap_check(mrna_to_cds)
+#    mrna_to_cds = _get_mrna_to_cds(dbase)
+#    sanity_overlap_check(mrna_to_cds)
     ### ---------------------------------------------
 
 
@@ -265,20 +276,24 @@ def main():
     ### Then, when filled, keep topping it off, while we periodically poll result_queue
     ### ---------------------------------------------
 
-    work_queue_size = 1000
-    low_water_mark = 900 # Size at which we refill the work_queue
+    work_queue_size = 500
+    low_water_mark = 400 # Size at which we refill the work_queue
     fillup_increment = 50 # and how much to fill it by
-    critical_low_mark = 500 # Size at which we stall threads, as work queue is too small!
+    critical_low_mark = 100 # Size at which we stall threads, as work queue is too small!
     
-    result_queue_size = 1000
+    result_queue_size = 500
     high_water_mark = 100 # Size at which we send off data to collector (or write to disk)
     drain_increment = 50 # how many results to send off/write at a given time
-    critical_high_mark = 500 # Site at which we stall threads, as result_queue is too big!
+    critical_high_mark = 400 # Site at which we stall threads, as result_queue is too big!
 
     stall_interval = 1 # How long (secs) to stall threads for (hopefully not necessary!)
     
     assert(low_water_mark < work_queue_size)
+    assert(critical_low_mark < low_water_mark)
+    assert(high_water_mark < result_queue_size)
+    assert(high_water_mark < critical_high_mark)
     assert(fillup_increment < (work_queue_size - low_water_mark))
+    assert(drain_increment < (result_queue_size - high_water_mark))
     _out_of_work = False
 
     work_queue = Queue.Queue(maxsize = work_queue_size)  # A threadsafe producer/consumer Queue
@@ -441,8 +456,7 @@ def _get_homologene_to_mrna(dbase):
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
                        "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
-                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID "
-                       "AND ROWNUM < 100 ")
+                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID")
     for row in SQLGenerator(mrna_dbase):
         homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
     mrna_dbase.close()
@@ -461,8 +475,7 @@ def _get_mrna_to_seq(dbase):
     mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_CHROMOSOME, GCS_TAXID, "
                        "GCS_LOCALTAXID, GCS_COMPLEMENT, GCS_START, GCS_STOP "
                        "FROM PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
-                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID "
-                       "AND ROWNUM < 100")
+                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID")
     for row in SQLGenerator(mrna_dbase):
         assert(row[5] < row[6]) # Start < Stop
         mrna_to_seq[row[0]] = tuple(row[1:])
@@ -502,7 +515,6 @@ def _get_mrna_to_cds(dbase):
                        "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
                        "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
                        "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
-                       "AND ROWNUM < 100 "
                        "ORDER BY CDS_START")
     for row in SQLGenerator(mrna_dbase):
         assert(row[2] < row[3] + 1) # Start < Stop + 1
@@ -515,6 +527,8 @@ def _get_mrna_to_cds(dbase):
 def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons):
     """ A generator that yields one item at a time for the work queue. """
 
+    seq_db = dbase.cursor() # TODO: Bind parameters in execute()
+    
     # We work on one microRNA cluster at a time, and loop over all sequence clusters
     for micro_rna_id, micro_rna_cluster in mirna_queries.iteritems():
         # Loop over every Homologene=>(mrna_geneid, mrna_transcript_no)
@@ -536,8 +550,6 @@ def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_s
                 #  i.e. To select BP #70, gcs_start = 70 AND gcs_stop = 70
                 seq_length = gcs_stop - gcs_start + 1
 
-                # TODO: Bind params, and stop reopening this damn cursor.
-                seq_db = dbase.cursor()
                 # Extract the raw sequence from PAP.GENOMIC_SEQUENCE, which contains:
                 #  > ges_loadid, ges_chromosome, ges_taxid, ges_localtaxid, ges_sequence, ges_masked_sequence
                 #
@@ -552,10 +564,8 @@ def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_s
                 # Convert CLOB to STR for some easier handling
                 raw_seq = str(seq_clob)
                 assert(len(raw_seq) == seq_length)
-                # Make sure we got actual base pairs, not '-' or 'N'
-                assert(re.match("^[ATGC]*$", raw_seq, re.IGNORECASE))
-
-                seq_db.close()
+                # Make sure we got actual base pairs, not '-'
+                assert(re.match("^[ATGCN]*$", raw_seq, re.IGNORECASE))
 
                 # Check if strand is complement, and take reverse complement.
                 if gcs_complement:
@@ -569,9 +579,13 @@ def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_s
                     exons.append(raw_seq[exon_start-gcs_start:exon_stop-gcs_start+1])
                 exon_seq = ''.join(exons)
 
-                homolog_cluster[gcs_localtaxid] = (mrc_geneid, mrc_transcript_no, exon_seq)
+                # WARNING: We can have /multiple/ entries here, as the "primary key" for mRNA is
+                # geneid AND transcript_no!
+                homolog_cluster.setdefault(gcs_localtaxid, set()).add((mrc_geneid, mrc_transcript_no, exon_seq))
 
-            yield (micro_rna_id, micro_rna_cluster, homolog_cluster)
+            yield (micro_rna_id, micro_rna_cluster, hge_homologeneid, homolog_cluster)
+
+    seq_db.close()
 
 
 if __name__ == "__main__":
