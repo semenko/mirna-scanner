@@ -196,15 +196,10 @@ def main():
     starttime = time.time()
 
     # Check that RNAhybrid exists, and is executable
-    assert(os.path.exists(RNAHYBRID_PATH) and os.access(RNAHYBRID_PATH, os.X_OK))
+    #assert(os.path.exists(RNAHYBRID_PATH) and os.access(RNAHYBRID_PATH, os.X_OK))
 
     usage = "usage: %prog [OPTIONS]"
     parser = OptionParser(usage)
-
-    # General settings
-    #parser.add_option("-s", "--oneSpecies", help="Specify a species list for a query, such as "
-    #                  "Hs,Pt [Default: Use all species.]",
-    #                  default=False, action="store", type="string", dest="speciesList")
 
     # This ignores hyperthreading pseudo-cores, which is fine since we hose the ALU
     parser.add_option("-j", help="Threads. We parallelize the invocations of RNAhybrid. [Default: # of CPU cores]",
@@ -237,17 +232,19 @@ def main():
 
     # This is a dict mapping short species tags ('Hs','Cf') to TAXIDs.
     # Note: These are /local/ TAXIDs via localtaxid_to_org (in cafeuser?)
-    speciesMap = {'Hs': 7951, # Human
+    localTaxMap = {'Hs': 7951, # Human
                   'Pt': 7943, # Chimp
                   'Cf': 7959, # Dog
                   'Rn': 8385, # Rat
                   'Gg': 7458, # Chicken
                   'Mm': 8364} # Mouse
 
-    # Either one or all species
-    #speciesList = speciesMap.keys()
-    #if options.oneSpecies:
-    #    speciesList = [options.oneSpecies]
+    UCSCTaxMap = {'hg18': 'Hs', # Human
+                  'panTro2': 'Pt', # Chimp
+                  'canFam2': 'Cf', # Dog
+                  'rn4': 'Rn', # Rat
+                  'galGal3': 'Gg', # Chicken
+                  'mm9': 'Mm'} # Mouse
 
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
     dbase = cx_Oracle.connect(ORACLE_USERNAME, oracle_password, ORACLE_SERVER + ':1521/' + ORACLE_DB)
@@ -256,7 +253,9 @@ def main():
     # Get list of distinct orthologous groups.
     mirna_id_dbcursor = dbase.cursor()
     mirna_id_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
-                              "WHERE MMO_MATURESEQ IS NOT NULL ORDER BY 1")
+                              "WHERE MMO_MATURESEQ IS NOT NULL "
+                              "AND MMO_SPECIES IN ('mm9', 'rn4', 'canFam2', 'hg18') "
+                              "ORDER BY 1")
     # validated:
     # where mmo_maturemirid in ('hsa-miR-124', 'hsa-miR-1', 'hsa-miR-373','hsa-miR-155', 'hsa-miR-30a','hsa-let-7b')
     #  and mmo_species in ('mm9', 'rn4', 'canFam2', 'hg18')
@@ -278,20 +277,22 @@ def main():
     # corresponding to the miRNA values.
     mirna_queries = {}
     # This will look like:
-    # mirna_queries[MIR_ID] = ((MMO_SPECIES, MMO_MATURESEQ), (MMO_SPECIES, MMO_MATURESEQ) ...)
+    # mirna_queries[MIR_ID] = ((localtaxid, MMO_MATURESEQ), (localtaxid, MMO_MATURESEQ) ...)
 
     mirna_dbcursor = dbase.cursor()
     # This is an inelegant way to select only the MIRIDs we want, but Oracle's lack of a
     # limit statement means this second query makes things more flexible with MySQL environments.
     mirna_dbcursor.execute("SELECT MMO_MATUREMIRID, MMO_SPECIES, MMO_MATURESEQ "
                            "FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
-                           "WHERE MMO_MATURESEQ IS NOT NULL")
+                           "WHERE MMO_MATURESEQ IS NOT NULL "
+                           "AND MMO_SPECIES IN ('mm9', 'rn4', 'canFam2', 'hg18')")
     for row in SQLGenerator(mirna_dbcursor):
         if row[0] in mirna_mirid_queries:
             try:
                 # Sanity check that miRNAs are actual sequences, free of 'N'
                 assert(re.match("^[AUTGC]*$", row[2], re.IGNORECASE))
-                mirna_queries.setdefault(row[0], set()).add((row[1], row[2]))
+                # We convert MMO_SPECIES (e.g. 'canfam2') to a local taxid
+                mirna_queries.setdefault(row[0], set()).add((localTaxMap[UCSCTaxMap[row[1]]], row[2]))
             except AssertionError:
                 print "\tIgnoring miRNA with 'N' or invalid char: %s, %s [mirid, species]" % (row[0], row[1])
     mirna_dbcursor.close()
@@ -370,11 +371,8 @@ def main():
                        "FROM PAP.MRNA_COORDINATES "
                        "ORDER BY MRC_START")
     for row in SQLGenerator(mrna_dbase):
-        try:
-            assert(row[2] < row[3]) # Start < Stop
+            assert(row[2] < row[3] + 1) # Start < Stop + 1
             mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
-        except AssertionError:
-            print "\tExcluding strangely small mRNA exon: %s, %s [geneid, length]" % (row[0], (row[3]-row[2]))
     mrna_dbase.close()
     print "Populated.\n"
     sanity_overlap_check(mrna_to_exons)
@@ -389,35 +387,51 @@ def main():
                        "AND ROWNUM < 100 "
                        "ORDER BY CDS_START")
     for row in SQLGenerator(mrna_dbase):
-        try:
-            assert(row[2] < row[3]) # Start < Stop
-            mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
-        except AssertionError:
-            print "\tExcluding strangely small mRNA CDS: %s, %s [geneid, length]" % (row[0], (row[3]-row[2]))
+        assert(row[2] < row[3] + 1) # Start < Stop + 1
+        mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
     print "Populated.\n"
     sanity_overlap_check(mrna_to_cds)
 
-
     
     ### ---------------------------------------------
-    ### First, start looping to populate our input_queue for threads to work
-    ### Then, when filled, keep topping it off, while we periodically poll output_queue
+    ### First, start looping to populate our work_queue for threads to work
+    ### Then, when filled, keep topping it off, while we periodically poll results_queue
     ### ---------------------------------------------
     
-    input_queue = Queue.Queue(maxsize = 1000)  # A threadsafe producer/consumer Queue
-    output_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid
+    work_queue = Queue.Queue(maxsize = 1000)  # A threadsafe producer/consumer Queue
+    # Contents:
+    # (micro_rna_id, micro_rna_clusters, homologene_id, homolog_cluster)
+    # Reminder: micro_rna_clusters = ((local_taxid, microrna_seq), ...)
 
-    
+    results_queue = Queue.Queue(maxsize = 1000) # Same, but for product of RNAhybrid
+
+
+    while True:
+        # WARNING: Queue calls can and will block!
+        while work_queue.full() == False:
+            # We call a generator to keep our work_queue full
+            pass
+
+        while result_queue.qsize() > 10:
+            # Send some results off to the collector, or write them to disk.
+            pass
+
     # We work on one miRNA cluster at a time, and loop over all sequence clusters
     for micro_rna_id, micro_rna_clusters in mirna_queries.iteritems():
         """ Loop over mirna_queries dict handing out clusters of miRNAs to threads. """
 
+        print "Populating queue."
+        count = 0
         # Loop over every Homologene=>(mrna_geneid, mrna_transcript_no)
         for hge_homologeneid, _mrna_list in homologene_to_mrna.iteritems():
             # homolog_cluster will get added to the input queue
-            # Its elements are: (mrc_geneid, mrc_transcript_no, gcs_localtaxid, exon_sequence)
-            homolog_cluster = set()
+            # This is a dict, rather than a simpler structure, so the threads can lookup
+            # matching localtaxids for RNAhybrid comparisons.
+            #
+            # Key: gcs_localtaxid
+            # Value: (mrc_geneid, mrc_transcript_no, exon_seq)
+            homolog_cluster = {}
             
             # For each mRNA, lookup sequence (this is transcript no. agnostic)
             for mrc_geneid, mrc_transcript_no in _mrna_list:
@@ -444,6 +458,7 @@ def main():
                 # Convert CLOB to STR for some easier handling
                 raw_seq = str(seq_clob)
                 assert(len(raw_seq) == seq_length)
+                # Make sure we got actual base pairs, not '-' or 'N'
                 assert(re.match("^[ATGC]*$", raw_seq, re.IGNORECASE))
                 
                 seq_db.close()
@@ -453,19 +468,22 @@ def main():
                     raw_seq = revComplement(raw_seq)
                     
                 # Do some list slicing to get only the exon sequence.
-                #[(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
                 exons = []
                 for exon_start, exon_stop in mrna_to_exons[(mrc_geneid, mrc_transcript_no)]:
                     # We have to offset these by gcs_start
                     # We also add one to compensate for python being [inclusive:exclusive]
                     exons.append(raw_seq[exon_start-gcs_start:exon_stop-gcs_start+1])
                 exon_seq = ''.join(exons)
-                
-                exit()
-        
-        
 
-            queue.put((t_prm_sql[0], t_prm_sql[1], rna_sql[0]))
+                homolog_cluster[gcs_localtaxid] = (mrc_geneid, mrc_transcript_no, exon_seq)
+                print "Cluster one."
+
+            print "Adding to work queue."
+            print str(len(homolog_cluster))
+            work_queue.put(homolog_cluster)
+            count += 1
+            print "Added: %s" % count
+            
             #rnahybrid(options.noCache, species, t_prm_sql[0], t_prm_sql[1], rna_sql[0])
                 
     print "\nAll done!\n"
