@@ -10,12 +10,15 @@
 """ Perform multithreaded RNAhybrid alignments of miRNA orthologs to CD-masked ortholog clusters. """
 
 from __future__ import generators
-import os
 import cx_Oracle
-import threading
+import datetime
+import os
 import Queue
 import re
+import socket
 import subprocess
+import sys
+import threading
 import time
 import zlib
 from optparse import OptionParser, OptionGroup
@@ -80,13 +83,8 @@ class RNAHybridThread(threading.Thread):
         """ The workhorse of our thread. """
         while True:
             self.consume.wait() # Wait until the "consume" event is True
-            task = self.__input_queue.get(True) # Block until we get a task.
-            if task is None:
-                # Nothing in the queue, so we're either done, or something bad has happened
-                # and the main thread can't fill the Queue fast enough.
-                print "Nothing in work_queue: Thread %s dying." % self.thread_num
-                break
-            else:
+            try:
+                task = self.__input_queue.get(True, 5) # Block for at most 5 seconds on queue, otherwise die.
                 # Check to make sure the output queue isn't full.
                 # This shouldn't be the case, as Network Speed >>>> RNAHybrid Output Speed
                 while self.__output_queue.full():
@@ -102,9 +100,14 @@ class RNAHybridThread(threading.Thread):
                         # No matching microRNA -> mRNA species pair.
                         pass
                 ## Results contains:
-                ## (success_flag ? , invals, outvals)
-                results = 'abcdef'
+                ## ???
                 self.__output_queue.put(results, True) # Block until a free slot is available.
+            except Queue.Empty:
+                # Nothing in the queue, so we're either done, or something bad has happened
+                # and the main thread can't fill the Queue fast enough.
+                print "Nothing in work_queue: Thread %s dying." % self.thread_num
+                break
+                            
                 
 
 def rnahybrid(utr_seq, mirna_query):
@@ -113,7 +116,6 @@ def rnahybrid(utr_seq, mirna_query):
     Returns:
       Results set from run of RNAhybrid.
     """
-
     # Set storing RNAhybrid output
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
     results = set()
@@ -125,7 +127,7 @@ def rnahybrid(utr_seq, mirna_query):
                                stderr=subprocess.PIPE)
     stdoutdata, stderrdata = process.communicate()
     for line in stdoutdata.split('\n')[:-1]:
-        # This annoying unpack is to correctly store ints as ints, etc., and not everything as a string.
+        # We could unpack, but this get's written to disk in 30 seconds ...
         mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
         results.add((float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime))
 
@@ -161,11 +163,7 @@ def main():
     # Check that RNAhybrid exists, and is executable
     assert(os.path.exists(RNAHYBRID_PATH) and os.access(RNAHYBRID_PATH, os.X_OK))
 
-    # Make our results path, if necessary
-    if not os.path.exists(RESULTS_PATH):
-        os.makedirs(RESULTS_PATH)
-
-    usage = "usage: %prog [OPTIONS]"
+    usage = "usage: %prog [OPTIONS] outfile"
     parser = OptionParser(usage)
 
     # This ignores hyperthreading pseudo-cores, which is fine since we hose the ALU
@@ -173,16 +171,14 @@ def main():
                       default=os.sysconf('SC_NPROCESSORS_ONLN'), action="store", type="int", dest="threads")
 
     group = OptionGroup(parser, "Range Settings (optional)")
-    parser.add_option("--start-num", help="What number miRNA ortholog group to start scanning from (inclusive).",
+    group.add_option("--start-num", help="What number miRNA ortholog group to start scanning from (inclusive).",
                       default=-1, action="store", type="int", dest="startNum")
-    parser.add_option("--stop-num", help="What number miRNA ortholog group to STOP scanning at (exclusive).",
+    group.add_option("--stop-num", help="What number miRNA ortholog group to STOP scanning at (exclusive).",
                       default=-1, action="store", type="int", dest="stopNum")
     parser.add_option_group(group)
 
     
     (options, args) = parser.parse_args()
-    if len(args) == 0:
-        parser.error("Try -h for help.")
 
     # Sanity check range inputs
     range_given = False
@@ -191,8 +187,27 @@ def main():
             parser.error("If you specifiy a start/stop, you must specify both ends of the range!")
         if options.startNum >= options.stopNum:
             parser.error("Invalid scan range.")
+        if options.startNum == 1:
+            print "WARNING: This is a Python range, where lists are zero indexed! Are you sure you mean '1'?"
         range_given = True
 
+    if len(args) == 0 and not range_given:
+        parser.error("You must specify an outfile if you don't provide range options.\n\nTry -h for help.")
+
+
+    # Make our results path, and make sure we can write to it.
+    if len(args) == 1:
+        results_file = RESULTS_PATH + args[0]
+        state_file = results_file + '.state'
+    else:
+        datestamp = datetime.datetime.now().strftime("%m%d-%H%M")
+        results_file = RESULTS_PATH + datestamp + '.' + socket.gethostname().split('.')[0]
+
+    print "\nWriting output to: %s" % results_file
+    # Make our results path, if necessary
+    if not os.path.exists(RESULTS_PATH):
+        os.makedirs(RESULTS_PATH)
+    open(results_file, 'w').close()
 
     # Connect to Database
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
@@ -277,6 +292,12 @@ def main():
 
     _work_queue_generator = _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons)
 
+    print len(homologene_to_mrna)
+
+    lol = []
+    for _ in range(50):
+        lol.append(_work_queue_generator.next())
+
     # WARNING: Queue calls can and /will/ block! Be careful!
     print "Work  | Result | Threads"
     while True:
@@ -288,10 +309,16 @@ def main():
             # We call a generator to keep our work_queue mostly full
             for _ in range(fillup_increment):
                 try:
-                    work_queue.put(_work_queue_generator.next())
+                    work_queue.put(lol.pop())
+#                    work_queue.put(_work_queue_generator.next())
                 except StopIteration:
                     print "Out of work: Waiting for work_queue to be emptied by threads ..."
                     _out_of_work = True
+                except IndexError:
+                    print "Out of work: Waiting for work_queue to be emptied by threads ..."
+                    _out_of_work = True
+                    break
+                                                            
 
         while result_queue.qsize() > high_water_mark:
             print "Draining result_queue."
@@ -303,10 +330,13 @@ def main():
             if (work_queue.qsize() < critical_low_mark) and (_out_of_work == False):
                 print "WARN: Work queue is too small! Something is wrong!"
                 consume_event.clear() # Stall threads.
-                
+
+            # We reopen/close this handle, as NFS is sketchy.
+            fh = open(results_file, 'a')
             for _ in range(drain_increment):
                 # Send some results off to the collector, or write them to disk.
-                result_queue.get()
+                fh.write(str(result_queue.get()))
+            fh.close()
 
 
         if _first_run:
@@ -318,11 +348,22 @@ def main():
                 thread.daemon = True
                 thread.start()
             _first_run = False
+            consume_event.set() # Let's go to work!
 
         if _out_of_work:
             # First, wait for results_queue to be completely emptied
-            # .join() on both queue AND thread!!
+            fh = open(results_file, 'a')
+            while (threading.active_count() - 1) > 0:
+                try:
+                    fh.write(str(result_queue.get(True, 5)))
+                except Queue.Empty:
+                    time.sleep(1)
+            # At this point, all our threads have died.
+            time.sleep(1) # A second to catch up, just in case.
+            while result_queue.qsize() > 0:
+                fh.write(str(result_queue.get()))
             print "All done!"
+            fh.close()
             break
 
         consume_event.set() # Let's go to work!
@@ -546,7 +587,7 @@ def _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_s
                 homolog_cluster.setdefault(gcs_localtaxid, set()).add((mrc_geneid, mrc_transcript_no, exon_seq))
 
             yield (micro_rna_id, micro_rna_cluster, hge_homologeneid, homolog_cluster)
-
+            
     seq_db.close()
 
 
