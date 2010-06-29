@@ -11,9 +11,7 @@
 
 from __future__ import generators
 import os
-import cPickle as pickle
 import cx_Oracle
-import marshal
 import threading
 import Queue
 import re
@@ -30,19 +28,14 @@ from optparse import OptionParser, OptionGroup
 # Relative (or full) path to RNAhybrid
 RNAHYBRID_PATH = 'rnahybrid/src/RNAhybrid'
 
-# Where to store cold-cache data from RNAhybrid. This will be large (many GB).
-COLDCACHE = '/state/partition1/tmp/semenko-cache/'
-
-# Minimum cache size (in GB), otherwise cache will be disabled.
-MINCACHESIZE = 25
-
 # Database Settings
 ORACLE_SERVER = 'feservertest.wustl.edu'
 ORACLE_DB = 'CHIPDB'
 ORACLE_USERNAME = 'mirtarget'
 ORACLE_PWFILE = '.oracle_password'
 
-
+# Where to store results
+RESULTS_PATH = 'results/'
 
 
 def SQLGenerator(cursor, arraysize = 1000):
@@ -100,31 +93,26 @@ class RNAHybridThread(threading.Thread):
                     print "Output queue is full! (Strange. Network issues?) Sleeping."
                     time.sleep(1)
                 # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-                
+                micro_rna_id, micro_rna_cluster, hge_homologeneid, homolog_cluster = task # Unpack task from queue
+                for local_taxid, microrna_seq in micro_rna_cluster:
+                    try:
+                        for mrc_geneid, mrc_transcript_no, exon_seq in homolog_cluster[local_taxid]:
+                            results = rnahybrid(exon_seq, microrna_seq)
+                    except KeyError:
+                        # No matching microRNA -> mRNA species pair.
+                        pass
                 ## Results contains:
-                ## (success_flag, invals, outvals)
+                ## (success_flag ? , invals, outvals)
                 results = 'abcdef'
                 self.__output_queue.put(results, True) # Block until a free slot is available.
                 
 
-def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
+def rnahybrid(utr_seq, mirna_query):
     """ Execute RNAhybrid.
     
     Returns:
-      Results set either from cache or a de-novo run of RNAhybrid.
+      Results set from run of RNAhybrid.
     """
-
-    cacheDir = mirna_query + '/' + str(entrez_geneid) + '/' + species + '/'
-    cacheKey = str(zlib.adler32(utr_seq) & 0xffffffff) # Mask makes this positive.
-
-    if not nocache:
-        results = load_cache('rnahybrid', cacheDir, cacheKey)
-        if results:
-            print "\t\tRetreived from cache: %s (miRNA query)" % mirna_query
-            # TODO: Add some addtl. validation of cache data?
-            return results
-    print "\t\tDe-novo run on: %s (miRNA query)" % mirna_query
-
 
     # Set storing RNAhybrid output
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
@@ -144,34 +132,7 @@ def rnahybrid(nocache, species, entrez_geneid, utr_seq, mirna_query):
     if process.returncode != 0 or len(stderrdata) != 0:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
 
-    save_cache('rnahybrid', cacheDir, cacheKey, results)
     return results
-
-### ---------------------------------------------
-### Caching code. # TODO: Use marshal instead.
-### ---------------------------------------------
-def save_cache(module, cachedir, cachekey, item):
-    """ Store something in a pickle cache. """
-    
-    path = COLDCACHE + module + '/' + cachedir
-    # Make sure all the directories exist.
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    output = open(path + cachekey + '.cache', 'wb', -1)
-    pickle.dump(item, output)
-    output.close()
-    return True
-
-def load_cache(module, cachedir, cachekey):
-    """ Try to retrieve something from a pickle cache. """
-    try:
-        return pickle.load(open(COLDCACHE + module + '/' + cachedir + cachekey + '.cache', 'rb'))
-    except IOError:
-        # No cached file exists
-        return False
-    # If this raises pickle.UnpicklingError, we have an error in the file itself. That's weird.
-    # We don't catch it, since it's something you should look at.
 
 
 def sanity_overlap_check(in_dict):
@@ -200,16 +161,16 @@ def main():
     # Check that RNAhybrid exists, and is executable
     assert(os.path.exists(RNAHYBRID_PATH) and os.access(RNAHYBRID_PATH, os.X_OK))
 
+    # Make our results path, if necessary
+    if not os.path.exists(RESULTS_PATH):
+        os.makedirs(RESULTS_PATH)
+
     usage = "usage: %prog [OPTIONS]"
     parser = OptionParser(usage)
 
     # This ignores hyperthreading pseudo-cores, which is fine since we hose the ALU
     parser.add_option("-j", help="Threads. We parallelize the invocations of RNAhybrid. [Default: # of CPU cores]",
                       default=os.sysconf('SC_NPROCESSORS_ONLN'), action="store", type="int", dest="threads")
-
-    parser.add_option("-n", "--nocache", help="Don't use local cache to retreive prior RNAhybrid"
-                     "results. [Default: False]",
-                     default=False, action="store_true", dest="noCache")
 
     group = OptionGroup(parser, "Range Settings (optional)")
     parser.add_option("--start-num", help="What number miRNA ortholog group to start scanning from (inclusive).",
@@ -232,18 +193,6 @@ def main():
             parser.error("Invalid scan range.")
         range_given = True
 
-    # Do some caching checks
-    if not options.noCache:
-        # Make sure our directory exists
-        if not os.path.exists(COLDCACHE):
-            os.makedirs(COLDCACHE)
-        # And that we have at least 25 GB of storage space
-        space = os.statvfs(COLDCACHE)
-        if ((space.f_bavail * space.f_frsize) / (1024 ** 3)) < MINCACHESIZE:
-            print "Insufficient cache space: Disabling cache."
-            options.noCache = True
-
-    exit()
 
     # Connect to Database
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
@@ -297,13 +246,8 @@ def main():
     _out_of_work = False
 
     work_queue = Queue.Queue(maxsize = work_queue_size)  # A threadsafe producer/consumer Queue
-    # Contents:
-    # (micro_rna_id, micro_rna_clusters, homologene_id, homolog_cluster)
-    # Reminder: micro_rna_clusters = ((local_taxid, microrna_seq), ...)
-
     result_queue = Queue.Queue(maxsize = result_queue_size) # Same, but for product of RNAhybrid
 
-    debug = True
     _first_run = True
 
     _work_queue_generator = _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons)
@@ -312,10 +256,10 @@ def main():
     print "Work  | Result | Threads"
     while True:
         print " %s \t  %s \t  %s " % (str(work_queue.qsize()), str(result_queue.qsize()), threading.active_count()-1)
-        time.sleep(1)
+        time.sleep(2)
 
         while (work_queue.qsize() < low_water_mark) and (_out_of_work == False):
-            print "Filling work queue now."
+            print "Filling work queue."
             # We call a generator to keep our work_queue mostly full
             for _ in range(fillup_increment):
                 try:
