@@ -200,21 +200,46 @@ def main():
     print "Connected to %s\n" % dbase.dsn
 
 
+    # Define the species sets we're looking at
+    
+    # Global TAXIDs. Local <-> Global <-> Org is available in CAFEUSER.LOCALTAXID_TO_ORG
+    globalTaxMap = {'Hs': 9606, # Human
+                    'Cf': 9615, # Dog
+                    'Rn': 10116, # Rat
+                    'Gg': 9031, # Chicken
+                    'Mm': 10094} # Mouse
+
+    localTaxMap = {'Hs': 7951, # Human
+                   'Cf': 7959, # Dog
+                   'Rn': 8385, # Rat
+                   'Gg': 7458, # Chicken
+                   'Mm': 8364} # Mouse
+
+    UCSCTaxMap = {'hg18': 'Hs', # Human
+                  'canFam2': 'Cf', # Dog
+                  'rn4': 'Rn', # Rat
+                  'galGal3': 'Gg', # Chicken
+                  'mm9': 'Mm'} # Mouse
+    
+    assert(len(globalTaxMap) == len(localTaxMap))
+    assert(len(localTaxMap) == len(UCSCTaxMap))
+
+
     ### ---------------------------------------------
     # First, we get the microRNA clusters.
-    mirna_queries = _get_microrna_data(dbase, range_given, options.startNum, options.stopNum)
+    mirna_queries = _get_microrna_data(dbase, range_given, options.startNum, options.stopNum, localTaxMap, UCSCTaxMap)
 
     ### ---------------------------------------------
     # Then, we get everything necessary for mRNA data.
     # Check out these functions for a description of these data structures.
-    homologene_to_mrna = _get_homologene_to_mrna(dbase)
-    mrna_to_seq = _get_mrna_to_seq(dbase)
-    
-    mrna_to_exons = _get_mrna_to_exons(dbase)
+    homologene_to_mrna = _get_homologene_to_mrna(dbase, globalTaxMap)
+    mrna_to_seq = _get_mrna_to_seq(dbase, globalTaxMap)
+
+    mrna_to_exons = _get_mrna_to_exons(dbase, globalTaxMap)
     sanity_overlap_check(mrna_to_exons)
 
-#    mrna_to_cds = _get_mrna_to_cds(dbase)
-#    sanity_overlap_check(mrna_to_cds)
+    #mrna_to_cds = _get_mrna_to_cds(dbase, globalTaxMap)
+    #sanity_overlap_check(mrna_to_cds)
     ### ---------------------------------------------
 
 
@@ -307,7 +332,7 @@ def main():
 
 
 
-def _get_microrna_data(dbase, range_given, startNum, stopNum):
+def _get_microrna_data(dbase, range_given, startNum, stopNum, localTaxMap, UCSCTaxMap):
     """ Retreive microRNA data
 
         Args:
@@ -322,31 +347,16 @@ def _get_microrna_data(dbase, range_given, startNum, stopNum):
              keys: MMO_MATUREMIRID
              vals: ((localtaxid, MMO_MATURESEQ), (localtaxid, MMO_MATURESEQ) ...) """
 
-    # This is a dict mapping short species tags ('Hs','Cf') to TAXIDs.
-    # Note: These are /local/ TAXIDs via localtaxid_to_org (in cafeuser?)
-    localTaxMap = {'Hs': 7951, # Human
-                   'Pt': 7943, # Chimp
-                   'Cf': 7959, # Dog
-                   'Rn': 8385, # Rat
-                   'Gg': 7458, # Chicken
-                   'Mm': 8364} # Mouse
+    species_limit = ''.join(["'" + x + "'," for x in UCSCTaxMap.iterkeys()])[:-1]
     
-    UCSCTaxMap = {'hg18': 'Hs', # Human
-                  'panTro2': 'Pt', # Chimp
-                  'canFam2': 'Cf', # Dog
-                  'rn4': 'Rn', # Rat
-                  'galGal3': 'Gg', # Chicken
-                  'mm9': 'Mm'} # Mouse
-
     # Get list of distinct orthologous groups.
     mirna_id_dbcursor = dbase.cursor()
     mirna_id_dbcursor.execute("SELECT DISTINCT(MMO_MATUREMIRID) FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
                               "WHERE MMO_MATURESEQ IS NOT NULL "
-                              "AND MMO_SPECIES IN ('mm9', 'rn4', 'canFam2', 'hg18') "
+                              "AND MMO_SPECIES IN (" + species_limit + ") "
                               "ORDER BY 1")
     # validated:
-    # where mmo_maturemirid in ('hsa-miR-124', 'hsa-miR-1', 'hsa-miR-373','hsa-miR-155', 'hsa-miR-30a','hsa-let-7b')
-    #  and mmo_species in ('mm9', 'rn4', 'canFam2', 'hg18')
+    # mmo_maturemirid in ('hsa-miR-124', 'hsa-miR-1', 'hsa-miR-373','hsa-miR-155', 'hsa-miR-30a','hsa-let-7b')
     mirna_mirid_queries = mirna_id_dbcursor.fetchall()
     mirna_id_dbcursor.close()
 
@@ -371,7 +381,7 @@ def _get_microrna_data(dbase, range_given, startNum, stopNum):
     mirna_dbcursor.execute("SELECT MMO_MATUREMIRID, MMO_SPECIES, MMO_MATURESEQ "
                            "FROM LCHANG.MIRBASE_MIR_ORTHOLOG "
                            "WHERE MMO_MATURESEQ IS NOT NULL "
-                           "AND MMO_SPECIES IN ('mm9', 'rn4', 'canFam2', 'hg18')")
+                           "AND MMO_SPECIES IN ('hg18', 'canFam2', 'rn4', 'galGal3', 'mm9')")
     for row in SQLGenerator(mirna_dbcursor):
         if row[0] in mirna_mirid_queries:
             try:
@@ -389,18 +399,20 @@ def _get_microrna_data(dbase, range_given, startNum, stopNum):
     
     return mirna_queries
 
-def _get_homologene_to_mrna(dbase):
+def _get_homologene_to_mrna(dbase, globalTaxMap):
     """ Returns: homologene_to_mrna (dict) """
     # homologene_to_mrna: (Dict)
     #   key: hge_homologeneid # TODO: Double-check that not all HGE_GENEIDs map to MRC_GENEIDs
     #                         # Homologene has 244,950 rows, while the select has only 67,520
     #   val: set((mrc_geneid, mrc_transcript_no), (mrc_geneid, mrc_transcript_no), ...)
     homologene_to_mrna = {}
+    species_limit = ''.join(["'" + str(x) + "'," for x in globalTaxMap.itervalues()])[:-1]
     print "Populating: homologene_to_mrna"
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
                        "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
-                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID")
+                       "WHERE PAP.HOMOLOGENE.HGE_GENEID = PAP.MRNA_COORDINATES.MRC_GENEID "
+                       "AND HGE_TAXID IN (" + species_limit + ")")
     for row in SQLGenerator(mrna_dbase):
         homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
     mrna_dbase.close()
@@ -408,18 +420,20 @@ def _get_homologene_to_mrna(dbase):
     return homologene_to_mrna
 
 
-def _get_mrna_to_seq(dbase):
+def _get_mrna_to_seq(dbase, globalTaxMap):
     """ Returns: mrna_to_seq (dict) """
     # mrna_to_seq: (Dict)
     #   key: mrc_geneid  # TODO: Double-check that mrc_transcript_no is NOT needed here
     #   val: (gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop)
     mrna_to_seq = {}
+    species_limit = ''.join(["'" + str(x) + "'," for x in globalTaxMap.itervalues()])[:-1]
     print "Populating: mrna_to_seq"
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_CHROMOSOME, GCS_TAXID, "
                        "GCS_LOCALTAXID, GCS_COMPLEMENT, GCS_START, GCS_STOP "
                        "FROM PAP.MRNA_COORDINATES, PAP.GENE_COORDINATES "
-                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID")
+                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.GENE_COORDINATES.GCS_GENEID "
+                       "AND GCS_TAXID IN (" + species_limit + ")")
     for row in SQLGenerator(mrna_dbase):
         assert(row[5] < row[6]) # Start < Stop
         mrna_to_seq[row[0]] = tuple(row[1:])
@@ -428,16 +442,19 @@ def _get_mrna_to_seq(dbase):
     return mrna_to_seq
 
 
-def _get_mrna_to_exons(dbase):
+def _get_mrna_to_exons(dbase, globalTaxMap):
     """ Returns: mrna_to_exons (dict) """
     # mrna_to_exons: (Dict)
     #   key: (mrc_geneid, mrc_transcript_no)
     #   val: [(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
     mrna_to_exons = {}
+    species_limit = ''.join(["'" + str(x) + "'," for x in globalTaxMap.itervalues()])[:-1]
     print "Populating: mrna_to_exons"
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
                        "FROM PAP.MRNA_COORDINATES "
+                       "WHERE MRC_GENEID IN (SELECT DISTINCT GCS_GENEID FROM PAP.GENE_COORDINATES "
+                       "WHERE GCS_TAXID IN (" + species_limit + ")) "
                        "ORDER BY MRC_START")
     for row in SQLGenerator(mrna_dbase):
         assert(row[2] < row[3] + 1) # Start < Stop + 1
@@ -447,18 +464,19 @@ def _get_mrna_to_exons(dbase):
     return mrna_to_exons
 
 
-def _get_mrna_to_cds(dbase):
+def _get_mrna_to_cds(dbase, globalTaxMap):
     """ Returns: mrna_to_cds (dict) """
     # mrna_to_cds: (Dict)
     #   key: (mrna_geneid, mrc_transcript_no)
     #   val: [(cds_start, cds_stop), (cds_start, cds_stop), ...]
     mrna_to_cds = {}
+    species_limit = ''.join(["'" + str(x) + "'," for x in globalTaxMap.itervalues()])[:-1]
     print "Populating: mrna_to_cds"
     mrna_dbase = dbase.cursor()
-    mrna_dbase.execute("SELECT DISTINCT MRC_GENEID, MRC_TRANSCRIPT_NO, CDS_START, CDS_STOP "
-                       "FROM PAP.MRNA_COORDINATES, PAP.CDS_COORDINATES "
-                       "WHERE PAP.MRNA_COORDINATES.MRC_GENEID = PAP.CDS_COORDINATES.CDS_GENEID "
-                       "AND PAP.MRNA_COORDINATES.MRC_TRANSCRIPT_NO = PAP.CDS_COORDINATES.CDS_TRANSCRIPT_NO "
+    mrna_dbase.execute("SELECT DISTINCT CDS_GENEID, CDS_TRANSCRIPT_NO, CDS_START, CDS_STOP "
+                       "FROM PAP.CDS_COORDINATES "
+                       "WHERE CDS_GENEID IN (SELECT DISTINCT GCS_GENEID FROM PAP.GENE_COORDINATES "
+                       "WHERE GCS_TAXID IN (" + species_limit + ")) "
                        "ORDER BY CDS_START")
     for row in SQLGenerator(mrna_dbase):
         assert(row[2] < row[3] + 1) # Start < Stop + 1
