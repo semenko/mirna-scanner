@@ -20,7 +20,7 @@ import subprocess
 import sys
 import threading
 import time
-import yappi
+#import yappi
 import zlib
 from optparse import OptionParser, OptionGroup
 
@@ -31,6 +31,10 @@ from optparse import OptionParser, OptionGroup
 
 # Relative (or full) path to RNAhybrid
 RNAHYBRID_PATH = 'rnahybrid/src/RNAhybrid'
+
+# Same for filter_rnahybrid
+FILTER_PATH = 'filter/filter_rnahybrid.pl'
+FILTER_SETTINGS = 'filter/cutoff25'
 
 # Database Settings
 ORACLE_SERVER = '192.168.2.18'
@@ -68,6 +72,10 @@ class RNAHybridError(Exception):
     """ Thrown when RNAhybrid dies. """
     pass
 
+class FilterError(Exception):
+    """ Thrown when filter_rnahybrid.pl dies. """
+    pass
+
 ### ---------------------------------------------
 
 
@@ -96,13 +104,17 @@ class RNAHybridThread(threading.Thread):
                 micro_rna_id, micro_rna_cluster, hge_homologeneid, homolog_cluster = task # Unpack task from queue
                 for local_taxid, microrna_seq in micro_rna_cluster:
                     try:
+                        # WARNING: homolog_cluster can include more than one item, as the primary key for mRNA is
+                        #          both mrc_geneid AND mrc_transcript_no
                         for mrc_geneid, mrc_transcript_no, exon_seq in homolog_cluster[local_taxid]:
+                            ## Results is a set of tuples (all data in 5'->3' direction):
+                            ## mfe, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime
+                            ## ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
                             results = rnahybrid(exon_seq, microrna_seq)
                     except KeyError:
                         # No matching microRNA -> mRNA species pair.
                         pass
-                ## Results contains:
-                ## ???
+
                 self.__output_queue.put(results, True) # Block until a free slot is available.
             except Queue.Empty:
                 # Nothing in the queue, so we're either done, or something bad has happened
@@ -122,23 +134,38 @@ def rnahybrid(utr_seq, mirna_query):
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
     results = set()
 
-    # There's no reason to do a p-value cutoff here. We'd just be throwing away data that we might use later.
-    process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-s', '3utr_human', '-p', '0.8', utr_seq, mirna_query],
-                               shell=False,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-    stdoutdata, stderrdata = process.communicate()
-    for line in stdoutdata.split('\n')[:-1]:
-        # We could unpack, but this is passed out a string anyway ...
-        #mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
-        #results.add((float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime))
-        results.add(tuple(line.split(':')[4:]))
+    # We may later wish to add a p-value cutoff here, to help filter.pl out. Not clear.
+    # RNAhybrid outputs:
+    #    mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
+    #    results.add((float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime))
+
+    # First, run RNAhybrid
+    process1 = subprocess.Popen([RNAHYBRID_PATH, '-c', '-s', '3utr_human', utr_seq, mirna_query],
+                                bufsize = 1,
+                                shell = False,
+                                stdout = subprocess.PIPE)
     
-    if process.returncode != 0 or len(stderrdata) != 0:
+    # and then run filter, piping the output in between.
+    process2 = subprocess.Popen([FILTER_PATH, FILTER_SETTINGS],
+                                bufsize = 1,
+                                shell = False,
+                                stdin = process1.stdout,
+                                stdout = subprocess.PIPE,
+                                stderr = subprocess.PIPE)
+    stdoutdata2, stderrdata2 = process2.communicate()
+
+    for line in stdoutdata2.split('\n')[:-1]:
+        # We may wish to unpack these values, and store first two as int().
+        # Filter output is \t separated, and looks like (after splitting):
+        # ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
+        print line.split('\t')[3:]
+        results.add(tuple(line.split('\t')[3:]))
+    
+    if process1.returncode != None:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
 
-    # Now, apply the filter to our results
-    # TODO: Filter these results, somehow
+    if process2.returncode != 0 or len(stderrdata2) != 0:
+        raise FilterError('An error occurred filtering the RNAhybrid output: %s' % stderrdata2)
 
 
     return results
@@ -163,13 +190,16 @@ def sanity_overlap_check(in_dict):
 ### ---------------------------------------------    
 def main():
     """ Main execution. """
-    yappi.start()
+    #yappi.start()
 
     # Begin timing execution
     starttime = time.time()
 
     # Check that RNAhybrid exists, and is executable
     assert(os.path.exists(RNAHYBRID_PATH) and os.access(RNAHYBRID_PATH, os.X_OK))
+    # Same for Perl filter_rnahybrid script
+    assert(os.path.exists(FILTER_PATH) and os.access(FILTER_PATH, os.X_OK))
+    assert(os.path.exists(FILTER_SETTINGS))
 
     usage = "usage: %prog [OPTIONS] outfile"
     parser = OptionParser(usage)
@@ -301,7 +331,7 @@ def main():
     _work_queue_generator = _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons)
 
     lol = []
-    for _ in range(10):
+    for _ in range(100):
         lol.append(_work_queue_generator.next())
 
     # WARNING: Queue calls can and /will/ block! Be careful!
@@ -377,9 +407,9 @@ def main():
 
     print "Execution took: %s secs." % (time.time()-starttime)
 
-    stats = yappi.get_stats()
-    for stat in stats: print stat
-    yappi.stop()
+#    stats = yappi.get_stats()
+#    for stat in stats: print stat
+#    yappi.stop()
 
 
 
