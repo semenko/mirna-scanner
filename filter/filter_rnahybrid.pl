@@ -1,18 +1,13 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 use strict;
 use warnings;
 use Data::Dumper;
 
-my $usage = "filter_rhybrid.pl <input> <output> <cutoff>\n";
+my $usage = "STDIN >>> filter_rhybrid.pl <cutoff> >>> STDOUT\n";
 
-die $usage unless @ARGV==3;
+die $usage unless @ARGV==1;
 
-my ($input,$output,$maxtar_file,$parameter_file)  = @ARGV;
-
-open(IN,$input) || die ("Could not open $input");
-
-open(OUT,">>$output") || die ("Could not open $output");
-
+my ($maxtar_file,$parameter_file)  = @ARGV;
 
 
 my %parameters_recent =();
@@ -82,7 +77,7 @@ my @seg1_utr_35;
 
 
 
-while(<IN>)
+while(<STDIN>)
             {	 
                   $in++;			
 	              chomp;
@@ -147,15 +142,14 @@ while(<IN>)
 	                     $seg2_utr_35 = reverse($seg2_utr_35);
 	                     $seg3_mir_53 = reverse($seg3_mir_53);
 	                     $seg4_mir_53 = reverse($seg4_mir_53);
-						 print OUT "$entrez_geneid\t$transcript_no\t$mir\t$energy\t$pos_orig\t$seg1_utr_35\t$seg2_utr_35\t$seg3_mir_53\t$seg4_mir_53\n";
+						 print "$entrez_geneid\t$transcript_no\t$mir\t$energy\t$pos_orig\t$seg1_utr_35\t$seg2_utr_35\t$seg3_mir_53\t$seg4_mir_53\n";
 				   }
                   else
                   {
                   }
 				%parameters_recent    = ();
              }
-     close(IN);
-	 close(OUT);
+
 
       
 sub get_param_cutoff
