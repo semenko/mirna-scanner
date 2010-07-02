@@ -1,0 +1,38 @@
+100008586	0	hsa-miR-1	-15.5	66	   A   AAG       GCC    G	    AUA   CUUUACA   UUCU 	    UAU   GAAAUGU   AAGG 	UAUG   GAA              U
+10000	0	hsa-miR-1	-15.9	188	     A   CAAGG         A	      GCU     UGCAUUUCA 	      UGA     AUGUAAGGU 	UAUGUA    AGAA          
+10000	1	hsa-miR-1	-16.6	2029	 A    UAUC       UU   AUU    C	  ACGU    CUUCUUU  CAU   UCUA 	  UGUA    GAAGAAA  GUA   AGGU 	UA       U        U           
+10000	1	hsa-miR-1	-17.8	2029	 A    UAUC       UUC       U	  ACGU    CUUCUUU   AUAUUUC 	  UGUA    GAAGAAA   UGUAAGG 	UA       U                 U
+10000	1	hsa-miR-1	-17.4	1665	U UG     AGGAG   G   AU     A	 U  GUGCU     CU  ACA  UUCCA 	 A  UAUGA     GA  UGU  AAGGU 	U UG         A  AA           
+10000	1	hsa-miR-1	-16.6	1560	U         CAUGUCCCCCAGAU   CA       U	 GUAUAUACU              UC   ACAUUUC 	 UAUGUAUGA              AG   UGUAAGG 	                          AAA       U
+10000	1	hsa-miR-1	-18.6	1560	U         CAUG  CCCC G      A	 GUAUAUACU    UC    A AUUCCA 	 UAUGUAUGA    AG    U UAAGGU 	                 AAA G       
+10000	1	hsa-miR-1	-16.3	817	      C      G      AU	       CUUCUU ACAUUU  	       GAAGAA UGUAAG  	UAUGUAU      A      GU
+10000	1	hsa-miR-1	-17.2	603	U        AAUUUUUU       A     U	 AUAUAUAU        UUUUUUA AUUCC 	 UAUGUAUG        AAGAAAU UAAGG 	                        G     U
+10000	1	hsa-miR-1	-17.2	484	C        GUAAAGC    CAGA    U	 GUGCAUAU       ACAU    UCCG 	 UAUGUAUG       UGUA    AGGU 	          AAGAAA             
+10000	1	hsa-miR-1	-16.8	375	G     CUGA    AGG        U	 AUACA    UUCU   UACAUUUU 	 UAUGU    AAGA   AUGUAAGG 	       AUG      A        U
+10000	1	hsa-miR-1	-16.6	305	  C   UG   AUUUG         A	   CAU  UUC     UGCA  CCA 	   GUA  AAG     AUGU  GGU 	UAU   UG      AA    AA    
+10000	1	hsa-miR-1	-18.6	163	 C      ACG AAA    C    G	  ACAUAC   C   UACA UCCA 	  UGUAUG   G   AUGU AGGU 	UA       AA  AA    A     
+10000	1	hsa-miR-1	-17.0	83	 C     GCAGGGGCAC     CG    C   G	  ACAUA          CUUC   ACAU CCA 	  UGUAU          GAAG   UGUA GGU 	UA                   AAA    A    
+10000	1	hsa-miR-1	-15.4	13	C          ACUGU   C    A	 UGC UACUUC     CAU UUCA 	 AUG AUGAAG     GUA AGGU 	U   U       AAAU         
+10000	1	hsa-miR-1	-15.3	3	        C            G	         UCUUU CAUUCU 	         AGAAA GUAAGG 	UAUGUAUGA     U      U
+10001	0	hsa-miR-1	-16.0	471	U      U     GUA  C    C	 UAUAUG CUUCU   AC UUUC 	 AUGUAU GAAGA   UG AAGG 	U             AA  U    U
+10001	0	hsa-miR-1	-21.4	374	  U        G     C    G	   CAUGCU   UUGCA UCCA 	   GUAUGA   AAUGU AGGU 	UAU      AGA     A     
+10002	0	hsa-miR-1	-19.1	61	U   C           CCCAGCA     U	 UGC UACU CUUUGC       AUUCC 	 AUG AUGA GAAAUG       UAAGG 	U   U    A                  U
+10002	1	hsa-miR-1	-16.3	662	 G       A  GCC  C     G	  GCA GCU CU   AC UUCCA 	  UGU UGA GA   UG AAGGU 	UA   A   A   AA  U      
+10002	1	hsa-miR-1	-15.7	554	 G   GAGG  AG  AC    GGU     A	  GCA    GC  CU  UGCA   UUCCG 	  UGU    UG  GA  AUGU   AAGGU 	UA      A  AA   A             
+10002	1	hsa-miR-1	-16.0	262	U      AA   GCAGGAG   GAGA   C	 UGCAUG  UCU       ACA    UCC 	 AUGUAU  AGA       UGU    AGG 	U      GA        AA      A   U
+10002	1	hsa-miR-1	-16.1	249	 C G     GAGGG      GAA   G	  A GUACU     UUGCAU   UCU 	  U UAUGA     AAUGUA   AGG 	UA G       AGA            U
+10002	1	hsa-miR-1	-15.1	175	U       AGACAAAG  AC   C     G	 GUACAUA        CU  UGC UUCUA 	 UAUGUAU        GA  AUG AAGGU 	             GAA   A   U      
+100036519	0	hsa-miR-1	-15.5	1210	A   A   G   A        GU	 AUA GUA UUU UUACAUUU  	 UAU UAU AAG AAUGUAAG  	    G   G   A        GU
+100036519	0	hsa-miR-1	-16.7	1028	U     G     AAUGCUGAGU          U	 AUACG ACUUC          UUUACA UCU 	 UAUGU UGAAG          AAAUGU AGG 	      A                     A   U
+100036519	0	hsa-miR-1	-16.5	722	U    UAG        CCC  UUGUU     U	 AUAC   AUUUCUUU   AC     UUCUA 	 UAUG   UGAAGAAA   UG     AAGGU 	      UA                 U      
+100036519	0	hsa-miR-1	-20.1	266	U     UCCUCUAA   GGA         U	 UACAU        GCU   UUACGUUCC 	 AUGUA        UGA   AAUGUAAGG 	U                AGA         U
+100036519	0	hsa-miR-1	-16.6	246	C    AAA  G  AGAAAGA         U	 UGCA   UG UU       UUACAUUCC 	 AUGU   AU AA       AAUGUAAGG 	U         G       GA         U
+100036519	0	hsa-miR-1	-17.5	185	  C      GGG GUG     CUGAA   C	   CAUACU   C   UGCAU     UCC 	   GUAUGA   G   AUGUA     AGG 	UAU        A  AA             U
+100036519	0	hsa-miR-1	-16.6	185	  C      GGG GUG        G	   CAUACU   C   UGCA UCU 	   GUAUGA   G   AUGU AGG 	UAU        A  AA    A   U
+100037417	0	hsa-miR-1	-15.8	469	U    C    AC    AU   C    U	 GUGC GUAC  UCU   CAU UCCA 	 UAUG UAUG  AGA   GUA AGGU 	           A   AAU         
+100037417	0	hsa-miR-1	-18.5	35	U          GGG   A    A	 UGCAUGC      AUA UCCA 	 AUGUAUG      UGU AGGU 	U       AAGAAA   A     
+100038246	0	hsa-miR-1	-18.1	61	   A     GG      UAU    U	    GUAUU  CUUUGC   UUCC 	    UAUGA  GAAAUG   AAGG 	UAUG      A        U    U
+100038246	0	hsa-miR-1	-15.8	61	   A     GG      U     C	    GUAUU  CUUUGC AUUUC 	    UAUGA  GAAAUG UAAGG 	UAUG      A            U
+10003	0	hsa-miR-1	-16.1	425	 A  A      G A     GU  AU	  GC AUACUU U UGCAU  UC  	  UG UAUGAA A AUGUA  AG  	UA         G A         GU
+10003	0	hsa-miR-1	-17.4	425	 A  A      G A     G    U	  GC AUACUU U UGCAU UUCA 	  UG UAUGAA A AUGUA AGGU 	UA         G A           
+100049587	0	hsa-miR-1	-17.1	128	C     CC     ACU      C	 AUAC   CUUCU   UAUUCC 	 UAUG   GAAGA   GUAAGG 	     UAU     AAU      U
