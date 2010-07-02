@@ -1,0 +1,100 @@
+100008586_0_Hs:91:hsa-miR-1:22:-15.5:0.991969:5:G    CCG       GAA   A   : UCUU   ACAUUUC   AUA    : GGAA   UGUAAAG   UAU    :U              AAG   GUAU
+10000_0_Hs:218:hsa-miR-1:22:-15.9:0.999985:13:A         GGAAC   A     : ACUUUACGU     UCG      : UGGAAUGUA     AGU      :          AAGA    AUGUAU
+10000_0_Hs:218:hsa-miR-1:22:-15.2:1.000000:201:G   G     C      G     : ACC  ACAU  CUUCG      : UGG  UGUA  GAAGU      :    AA    AA     AUGUAU
+10000_1_Hs:2067:hsa-miR-1:22:-16.6:1.000000:11:C    UUA   UU       CUAU    A : AUCU   UAC  UUUCUUC    UGCA  : UGGA   AUG  AAAGAAG    AUGU  :           U        U       AU
+10000_1_Hs:2067:hsa-miR-1:22:-17.8:1.000000:13:U       CUU       CUAU    A : CUUUAUA   UUUCUUC    UGCA  : GGAAUGU   AAAGAAG    AUGU  :U                 U       AU
+10000_1_Hs:2067:hsa-miR-1:22:-17.4:1.000000:376:A     UA   G   GAGGA     GU U: ACCUU  ACA  UC     UCGUG  U : UGGAA  UGU  AG     AGUAU  A :           AA  A         GU U
+10000_1_Hs:2067:hsa-miR-1:22:-16.6:1.000000:473:U       AC   UAGACCCCCUGUAC         U: CUUUACA   CU              UCAUAUAUG : GGAAUGU   GA              AGUAUGUAU :U       AAA                          
+10000_1_Hs:2067:hsa-miR-1:22:-18.6:1.000000:480:A      G CCCC  GUAC         U: ACCUUA A    CU    UCAUAUAUG : UGGAAU U    GA    AGUAUGUAU :       G AAA                 
+10000_1_Hs:2067:hsa-miR-1:22:-16.2:1.000000:655:A  GG         A        : AC  UGCAUUUCU         : UG  AUGUAAAGA         :   GA         AGUAUGUAU
+10000_1_Hs:2067:hsa-miR-1:22:-15.0:1.000000:1182:A       U    G     G   : ACC  AC UUUC UCAUA    : UGG  UG AAAG AGUAU    :    AA  U    A     GUAU
+10000_1_Hs:2067:hsa-miR-1:22:-15.2:1.000000:1233:C   AU     G      C      : ACU  UUACA UUCUUC       : UGG  AAUGU AAGAAG       :           A      UAUGUAU
+10000_1_Hs:2067:hsa-miR-1:22:-16.3:1.000000:1236:UA      G      C      :  UUUACA UUCUUC       :  GAAUGU AAGAAG       :UG      A      UAUGUAU
+10000_1_Hs:2067:hsa-miR-1:22:-17.2:1.000000:1435:U     A       UUUUUUAA        U: CCUUA AUUUUUU        UAUAUAUA : GGAAU UAAAGAA        GUAUGUAU :U     G                        
+10000_1_Hs:2067:hsa-miR-1:22:-17.2:1.000000:1556:U    AGAC    CGAAAUG        C: GCCU    UACA       UAUACGUG : UGGA    AUGU       GUAUGUAU :             AAAGAA          
+10000_1_Hs:2067:hsa-miR-1:22:-17.0:1.000000:1657:G     UCA       A    G  C: AUCUU   AUUUUUU CAUG AU : UGGAA   UAAAGAA GUAU UA :      UG             G  U
+10000_1_Hs:2067:hsa-miR-1:22:-15.0:1.000000:1665:A  UU       GGA    AGUC     G: AU  UUUACAU   UCUU    ACAUA : UG  GAAUGUA   AGAA    UGUAU :            A      GUA       
+10000_1_Hs:2067:hsa-miR-1:22:-16.8:1.000000:1668:U        GGA    AGUC     G: UUUUACAU   UCUU    ACAUA : GGAAUGUA   AGAA    UGUAU :U        A      GUA       
+10000_1_Hs:2067:hsa-miR-1:22:-16.6:1.000000:1742:A         GUUUA   GU   C  : ACC  ACGU     CUU  UAC   : UGG  UGUA     GAA  AUG   :    AA    AA      GU   UAU
+10000_1_Hs:2067:hsa-miR-1:22:-15.7:1.000000:1825:C   GU     G        U  : AUC   CGUU   UCGUAC   : UGG   GUAA   AGUAUG   :    AAU    AGA      UAU
+10000_1_Hs:2067:hsa-miR-1:22:-18.6:1.000000:1882:G    C    AAA GCA      C : ACCU ACAU   C   CAUACA  : UGGA UGUA   G   GUAUGU  :     A    AA  AA       AU
+10000_1_Hs:2067:hsa-miR-1:22:-17.0:1.000000:1955:G   C    GC     CACGGGGACG     C : ACC UACA   CUUC          AUACA  : UGG AUGU   GAAG          UAUGU  :    A    AAA                   AU
+10000_1_Hs:2067:hsa-miR-1:22:-15.4:1.000000:2032:A    C   UGUCA          C: ACUU UAC     CUUCAU CGU : UGGA AUG     GAAGUA GUA :         UAAA       U   U
+10000_1_Hs:2067:hsa-miR-1:22:-15.3:1.000000:2053:G            C        : UCUUAC UUUCU         : GGAAUG AAAGA         :U      U     AGUAUGUAU
+10001_0_Hs:573:hsa-miR-1:22:-18.0:0.999926:79:U    UCCA  G     U      U: CCUU    AU UCUUC GUAUAU : GGAA    UA AGAAG UAUGUA :U    UG    A            U
+10001_0_Hs:573:hsa-miR-1:22:-16.0:1.000000:80:C    C  AUG     U      U: CUUU CA   UCUUC GUAUAU : GGAA GU   AGAAG UAUGUA :U    U  AA             U
+10001_0_Hs:573:hsa-miR-1:22:-15.3:1.000000:177:G UUCGA   C     G        U  : G     CCU ACGUU   UCGUAC   : U     GGA UGUAA   AGUAUG   :          A     AGA      UAU
+10001_0_Hs:573:hsa-miR-1:22:-16.6:1.000000:181:C A   C     G        U  : G CCU ACGUU   UCGUAC   : U GGA UGUAA   AGUAUG   :      A     AGA      UAU
+10001_0_Hs:573:hsa-miR-1:22:-21.4:0.777971:182:G    C     G        U  : ACCU ACGUU   UCGUAC   : UGGA UGUAA   AGUAUG   :     A     AGA      UAU
+10002_0_Hs:575:hsa-miR-1:22:-15.1:1.000000:483:G UGCU     ACGACCC           C   U: A    CCUUA       CGUUUC UCAU CGU : U    GGAAU       GUAAAG AGUA GUA :                        A    U   U
+10002_0_Hs:575:hsa-miR-1:22:-15.7:1.000000:485:U CU     ACGACCC           C   U: G  CCUUA       CGUUUC UCAU CGU : U  GGAAU       GUAAAG AGUA GUA :                      A    U   U
+10002_0_Hs:575:hsa-miR-1:22:-19.1:0.994646:488:U     ACGACCC           C   U: CCUUA       CGUUUC UCAU CGU : GGAAU       GUAAAG AGUA GUA :U                  A    U   U
+10002_0_Hs:575:hsa-miR-1:22:-15.0:1.000000:493:A  GACCC           C   U: AC     CGUUUC UCAU CGU : UG     GUAAAG AGUA GUA :   GAAU       A    U   U
+10002_0_Hs:575:hsa-miR-1:22:-15.6:1.000000:495:CGACCC           C   U:      CGUUUC UCAU CGU :      GUAAAG AGUA GUA :UGGAAU      A    U   U
+10002_0_Hs:575:hsa-miR-1:22:-18.7:0.998543:496:G   C             C   U: ACC   CGUUUC UCAU CGU : UGG   GUAAAG AGUA GUA :    AAU      A    U   U
+10002_0_Hs:575:hsa-miR-1:22:-15.7:1.000000:498:C                C   U: CC   CGUUUC UCAU CGU : GG   GUAAAG AGUA GUA :U  AAU      A    U   U
+10002_1_Hs:808:hsa-miR-1:22:-15.3:1.000000:89:G   GG    GG     AG  UUG G   C: ACC  UACG  UUUCU  UC   A GUA : UGG  AUGU  AAAGA  AG   U UAU :    A                UA  G    
+10002_1_Hs:808:hsa-miR-1:22:-16.3:1.000000:126:G     C  CCG  A       G : ACCUU CA   UC UCG ACG  : UGGAA GU   AG AGU UGU  :      U  AA   A   A   AU
+10002_1_Hs:808:hsa-miR-1:22:-15.3:1.000000:170:G    GGGUACCGG    G       G   C : ACCU         UACG     UCA ACG  : UGGA         AUGU     AGU UGU  :                  AAAGA   A   AU
+10002_1_Hs:808:hsa-miR-1:22:-16.3:1.000000:178:U   GG    G       G   C : ACC  UACG     UCA ACG  : UGG  AUGU     AGU UGU  :    A     AAAGA   A   AU
+10002_1_Hs:808:hsa-miR-1:22:-15.7:1.000000:227:A     UGG    CA  GA  GGAG   G : GCCUU   ACGU  UC  CG    ACG  : UGGAA   UGUA  AG  GU    UGU  :             A   AA  A      AU
+10002_1_Hs:808:hsa-miR-1:22:-16.0:1.000000:518:C   AGAG   GAGGACG   AA      U: CCU    ACA       UCU  GUACGU : GGA    UGU       AGA  UAUGUA :U   A      AA        AG      U
+10002_1_Hs:808:hsa-miR-1:22:-16.1:1.000000:535:G   AAG      GGGAG     G C : UCU   UACGUU     UCAUG A  : GGA   AUGUAA     AGUAU U  :U            AGA       G AU
+10002_1_Hs:808:hsa-miR-1:22:-15.5:1.000000:595:G   A    GAGA     CGUCAUCGAAACAGA       U: GCC  ACA    UCUUC               AUACAUG : UGG  UGU    AGAAG               UAUGUAU :    AA   AA                              
+10002_1_Hs:808:hsa-miR-1:22:-15.1:1.000000:605:G     C   CA  GAAACAGA       U: AUCUU CGU  UC        AUACAUG : UGGAA GUA  AG        UAUGUAU :      U   A   AAG             
+100036519_0_Hs:1345:hsa-miR-1:22:-15.5:1.000000:114:UG        A   G   A   A:  UUUACAUU UUU AUG AUA :  GAAUGUAA GAA UAU UAU :UG        A   G   G    
+100036519_0_Hs:1345:hsa-miR-1:22:-18.8:0.999999:272:C    CAUUGAAGGAUUC       UGAGUCGUAA     G     U: ACCU             UACAUUU          CUUCA GCAUA : UGGA             AUGUAAA          GAAGU UGUAU :                                        A      
+100036519_0_Hs:1345:hsa-miR-1:22:-15.2:1.000000:285:GA  C       UGAGUCGUAA     G     U:  UU UACAUUU          CUUCA GCAUA :  GA AUGUAAA          GAAGU UGUAU :UG                         A      
+100036519_0_Hs:1345:hsa-miR-1:22:-16.3:1.000000:285:G   C       UGAGUCGUAA     G     U: AUU UACAUUU          CUUCA GCAUA : UGG AUGUAAA          GAAGU UGUAU :    A                      A      
+100036519_0_Hs:1345:hsa-miR-1:22:-16.7:1.000000:287:U          UGAGUCGUAA     G     U: UCU ACAUUU          CUUCA GCAUA : GGA UGUAAA          GAAGU UGUAU :U   A                     A      
+100036519_0_Hs:1345:hsa-miR-1:22:-16.0:1.000000:292:C      AGU   AA     G     U: AUUUUG   CGU  CUUCA GCAUA : UGGAAU   GUA  GAAGU UGUAU :             AA     A      
+100036519_0_Hs:1345:hsa-miR-1:22:-15.3:1.000000:567:C     GU CCA   A      U: CCUUA  U   CUU   ACGU : GGAAU  A   GAA   UGUA :U     GU AA    GUA    U
+100036519_0_Hs:1345:hsa-miR-1:22:-16.5:1.000000:593:U     UUGUU  CCC        GAU    U: AUCUU     CA   UUUCUUUA   CAUA : UGGAA     GU   AAAGAAGU   GUAU :      U                 AU      
+100036519_0_Hs:1345:hsa-miR-1:22:-15.0:1.000000:604:C   C            GAU    U: ACC     UUUCUUUA   CAUA : UGG     AAAGAAGU   GUAU :    AAUGU        AU      
+100036519_0_Hs:1345:hsa-miR-1:22:-16.6:1.000000:896:C      UGCCUUUUCCACU   G     UACU    A : CCUUAC             GUU UCUUC    UACG  : GGAAUG             UAA AGAAG    AUGU  :U                            U       AU
+100036519_0_Hs:1345:hsa-miR-1:22:-17.5:1.000000:903:U     UUCC  UGUUG     UACU    A : GCCUU    AC     UCUUC    UACG  : UGGAA    UG     AGAAG    AUGU  :            UAA       U       AU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.1:1.000000:925:U    ACGA    GUGAUUAGAAG     AC GU    C : ACUU    UACA           UUUCU  U  UACA  : UGGA    AUGU           AAAGA  A  AUGU  :                                GU    AU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.9:1.000000:929:U  GA    GUGAUUAGAAG     AC GU    C : AC  UACA           UUUCU  U  UACA  : UG  AUGU           AAAGA  A  AUGU  :   GA                       GU    AU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.7:1.000000:970:C   GU  GUA      G     : CCU  CG   UCUUCG      : GGA  GU   AGAAGU      :U   AU  AA       AUGUAU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.0:1.000000:1008:U   GAAC    GGACG    CA     A : ACU    UGCG     CUUC  AUGCA  : UGG    AUGU     GAAG  UAUGU  :    A       AAA             AU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.3:1.000000:1044:A AAAUCU         AGG   AAUCUCCU     U: A      CCUUGCAUU   UCG        UACAU : U      GGAAUGUAA   AGU        AUGUA :                 AGA                U
+100036519_0_Hs:1345:hsa-miR-1:22:-15.7:1.000000:1045:A AAUCU         AGG   AAUCUCCU     U: A     CCUUGCAUU   UCG        UACAU : U     GGAAUGUAA   AGU        AUGUA :                AGA                U
+100036519_0_Hs:1345:hsa-miR-1:22:-16.1:1.000000:1046:A AUCU         AGG   AAUCUCCU     U: A    CCUUGCAUU   UCG        UACAU : U    GGAAUGUAA   AGU        AUGUA :               AGA                U
+100036519_0_Hs:1345:hsa-miR-1:22:-16.5:1.000000:1047:A UCU         AGG   AAUCUCCU     U: A   CCUUGCAUU   UCG        UACAU : U   GGAAUGUAA   AGU        AUGUA :              AGA                U
+100036519_0_Hs:1345:hsa-miR-1:22:-20.1:0.999456:1051:U         AGG   AAUCUCCU     U: CCUUGCAUU   UCG        UACAU : GGAAUGUAA   AGU        AUGUA :U         AGA                U
+100036519_0_Hs:1345:hsa-miR-1:22:-16.6:1.000000:1071:U         AGAAAGA  G  AAA    C: CCUUACAUU       UU GU   ACGU : GGAAUGUAA       AA UA   UGUA :U         AG       G         U
+100036519_0_Hs:1345:hsa-miR-1:22:-15.3:1.000000:1094:A ACGUCG     UUG      A   C : A      CUUGC   UCUUCA GCA  : U      GAAUG   AGAAGU UGU  :  G          UAA      A   AU
+100036519_0_Hs:1345:hsa-miR-1:22:-17.1:1.000000:1095:A  GUCG     UUG      A   C : AC    CUUGC   UCUUCA GCA  : UG    GAAUG   AGAAGU UGU  :            UAA      A   AU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.9:1.000000:1098:G CG     UUG      A   C : U  CUUGC   UCUUCA GCA  : G  GAAUG   AGAAGU UGU  :U        UAA      A   AU
+100036519_0_Hs:1345:hsa-miR-1:22:-18.5:1.000000:1099:U G     UUG      A   C : C CUUGC   UCUUCA GCA  : G GAAUG   AGAAGU UGU  :U       UAA      A   AU
+100036519_0_Hs:1345:hsa-miR-1:22:-19.5:0.999960:1100:CG     UUG      A   C :  CUUGC   UCUUCA GCA  :  GAAUG   AGAAGU UGU  :UG     UAA      A   AU
+100036519_0_Hs:1345:hsa-miR-1:22:-16.1:1.000000:1100:C    GC UG       A   C : GCUU  U   UCUUCA GCA  : UGGA  G   AGAAGU UGU  :     AU UAA      A   AU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.4:1.000000:1104:UG              A   C :  CUUG    UCUUCA GCA  :  GAAU    AGAAGU UGU  :UG    GUAA      A   AU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.4:1.000000:1132:C   CUAAGUC     GUG GGG      C  : GCC       UACGU   C   UCAUAC   : UGG       AUGUA   G   AGUAUG   :    A           AA  A        UAU
+100036519_0_Hs:1345:hsa-miR-1:22:-17.5:1.000000:1134:C   AAGUC     GUG GGG      C  : CCU     UACGU   C   UCAUAC   : GGA     AUGUA   G   AGUAUG   :U             AA  A        UAU
+100036519_0_Hs:1345:hsa-miR-1:22:-15.4:1.000000:1139:AGUC     GUG GGG      C  :    UACGU   C   UCAUAC   :    AUGUA   G   AGUAUG   :UGGA     AA  A        UAU
+100036519_0_Hs:1345:hsa-miR-1:22:-16.6:1.000000:1140:G        GUG GGG      C  : UCU ACGU   C   UCAUAC   : GGA UGUA   G   AGUAUG   :U   A    AA  A        UAU
+100037417_0_Hs:1153:hsa-miR-1:22:-15.4:1.000000:480:G     UGA   ACAAUGGAGAC   CCC      A : ACCUU   ACG           UCU   CGUACA  : UGGAA   UGU           AGA   GUAUGU  :            AA            A        AU
+100037417_0_Hs:1153:hsa-miR-1:22:-15.8:1.000000:660:U    C   UA    CA    C    U: ACCU UAC   UCU  CAUG CGUG : UGGA AUG   AGA  GUAU GUAU :         UAA   A           
+100037417_0_Hs:1153:hsa-miR-1:22:-15.5:1.000000:1084:G    C   UGG  GAAACCUAAUAGGG       U: ACCU UAU   UC              CGUACGU : UGGA AUG   AG              GUAUGUA :         UAA  AA                   U
+100037417_0_Hs:1153:hsa-miR-1:22:-18.5:0.999999:1100:A    A   GGG          U: ACCU AUA      CGUACGU : UGGA UGU      GUAUGUA :     A   AAAGAA       U
+100038246_0_Hs:216:hsa-miR-1:22:-15.3:1.000000:133:G U    UAU      GG     A   : G CCUU   CGUUUC  UUAUG    : U GGAA   GUAAAG  AGUAU    :       U        A      GUAU
+100038246_0_Hs:216:hsa-miR-1:22:-18.1:0.945377:135:U    UAU      GG     A   : CCUU   CGUUUC  UUAUG    : GGAA   GUAAAG  AGUAU    :U    U        A      GUAU
+100038246_0_Hs:216:hsa-miR-1:22:-15.8:0.999992:136:C     U      GG     A   : CUUUA CGUUUC  UUAUG    : GGAAU GUAAAG  AGUAU    :U            A      GUAU
+10003_0_Hs:861:hsa-miR-1:22:-16.4:1.000000:405:AUUCA     A           U:     ACGUU CUU GUACGUA :     UGUAA GAA UAUGUAU :UGGAA     A   G        
+10003_0_Hs:861:hsa-miR-1:22:-16.1:1.000000:414:UA  UG     A G      A  A :  CU  UACGU U UUCAUA CG  :  GA  AUGUA A AAGUAU GU  :UG         A G         AU
+10003_0_Hs:861:hsa-miR-1:22:-17.4:1.000000:414:U    G     A G      A  A : ACUU UACGU U UUCAUA CG  : UGGA AUGUA A AAGUAU GU  :           A G         AU
+10003_0_Hs:861:hsa-miR-1:22:-15.8:1.000000:416:CUUG     A G      A  A :    UACGU U UUCAUA CG  :    AUGUA A AAGUAU GU  :UGGA     A G         AU
+10003_0_Hs:861:hsa-miR-1:22:-18.8:0.999904:478:C      AGACCUCAGGAUUU      CA      A : ACCUUA              CAUUUU  CAUACA  : UGGAAU              GUAAAG  GUAUGU  :                           AA      AU
+10003_0_Hs:861:hsa-miR-1:22:-18.1:0.999999:486:G    CAGGAUUU      CA      A : ACCU        CAUUUU  CAUACA  : UGGA        GUAAAG  GUAUGU  :     AU            AA      AU
+10003_0_Hs:861:hsa-miR-1:22:-15.0:1.000000:493:GGAUUU      CA      A :      CAUUUU  CAUACA  :      GUAAAG  GUAUGU  :UGGAAU      AA      AU
+10003_0_Hs:861:hsa-miR-1:22:-15.4:1.000000:494:GA          CA      A :  UUU CAUUUU  CAUACA  :  GAA GUAAAG  GUAUGU  :UG   U      AA      AU
+100049587_0_Hs:802:hsa-miR-1:22:-15.3:1.000000:200:C   GAGUAUGG     A GG     A   : ACC        ACAUU C  UCGUG    : UGG        UGUAA G  AGUAU    :    AA           A A      GUAU
+100049587_0_Hs:802:hsa-miR-1:22:-15.0:1.000000:516:U   CC    A    GGCUU       A : ACC   CAU UUCU     UCAUGUA  : UGG   GUA AAGA     AGUAUGU  :    AAU                    AU
+100049587_0_Hs:802:hsa-miR-1:22:-17.1:1.000000:654:C      UCA     CC     C: CCUUAU   UCUUC   CAUA : GGAAUG   AGAAG   GUAU :U      UAA     UAU     
+100049587_0_Hs:802:hsa-miR-1:22:-18.9:0.999753:703:C   C    CUCGAAGGUC        ACUGUCAC    G : ACC UACA          UUUCUUCG        UACA  : UGG AUGU          AAAGAAGU        AUGU  :    A                                  AU
+100049587_0_Hs:802:hsa-miR-1:22:-16.8:1.000000:705:C       CUCGAAGGUC        ACUGUCAC    G : CCU ACA          UUUCUUCG        UACA  : GGA UGU          AAAGAAGU        AUGU  :U   A                                 AU
+10004_0_Hs:448:hsa-miR-1:22:-15.9:1.000000:34:C  GACA    CC  CAAUCCUAUGUG        C: CC    ACAU  CU            UCGUACGU : GG    UGUA  GA            AGUAUGUA :U  AA      AA                      U
+10004_0_Hs:448:hsa-miR-1:22:-15.1:1.000000:36:CGACA    CC  CAAUCCUAUGUG        C:     ACAU  CU            UCGUACGU :     UGUA  GA            AGUAUGUA :UGGAA    AA                      U
+10004_0_Hs:448:hsa-miR-1:22:-15.0:1.000000:37:G  A      CC  CAAUCCUAUGUG        C: AC   ACAU  CU            UCGUACGU : UG   UGUA  GA            AGUAUGUA :   GAA    AA                      U
+10051_1_Hs:1144:hsa-miR-1:22:-15.1:1.000000:744:C AUUCA       GAA      AG   G  U: G     CCUUACG   UUUCUU  AUA GU : U     GGAAUGU   AAAGAA  UAU UA :                       G    G  U

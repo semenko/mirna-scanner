@@ -1,0 +1,43 @@
+
+
+
+Usage:
+
+
+filter_rhybrid.pl <input> <output> <cutoff>
+
+just as in 
+
+
+perl filter_rhybrid.pl test_input test_output cutoff25
+
+
+Input file - Format:
+
+
+100008586_0_Hs:91:hsa-miR-1:22:-15.5:0.991969:5:G    CCG       GAA   A   : UCUU   ACAUUUC   AUA    : GGAA   UGUAAAG   UAU    :U              AAG   GUAU
+10000_0_Hs:218:hsa-miR-1:22:-15.9:0.999985:13:A         GGAAC   A     : ACUUUACGU     UCG      : UGGAAUGUA     AGU      :          AAGA    AUGUAU
+10000_0_Hs:218:hsa-miR-1:22:-15.2:1.000000:201:G   G     C      G     : ACC  ACAU  CUUCG      : UGG  UGUA  GAAGU      :    AA    AA     AUGUAU
+10000_1_Hs:2067:hsa-miR-1:22:-16.6:1.000000:11:C    UUA   UU       CUAU    A : AUCU   UAC  UUUCUUC    UGCA  : UGGA   AUG  AAAGAAG    AUGU  :           U        U       AU
+
+Output File - Format :
+
+
+NB :Both utr-mir alignments as wellas position in Output file  is in 5'-3' direction
+
+
+100008586	0	hsa-miR-1	-15.5	66	   A   AAG       GCC    G	    AUA   CUUUACA   UUCU 	    UAU   GAAAUGU   AAGG 	UAUG   GAA              U
+10000	0	hsa-miR-1	-15.9	188	     A   CAAGG         A	      GCU     UGCAUUUCA 	      UGA     AUGUAAGGU 	UAUGUA    AGAA          
+10000	1	hsa-miR-1	-16.6	2029	 A    UAUC       UU   AUU    C	  ACGU    CUUCUUU  CAU   UCUA 	  UGUA    GAAGAAA  GUA   AGGU 	UA       U        U           
+10000	1	hsa-miR-1	-17.8	2029	 A    UAUC       UUC       U	  ACGU    CUUCUUU   AUAUUUC 	  UGUA    GAAGAAA   UGUAAGG 	UA       U                 U
+10000	1	hsa-miR-1	-17.4	1665	U UG     AGGAG   G   AU     A	 U  GUGCU     CU  ACA  UUCCA 	 A  UAUGA     GA  UGU  AAGGU 	U UG         A  AA           
+10000	1	hsa-miR-1	-16.6	1560	U         CAUGUCCCCCAGAU   CA       U	 GUAUAUACU              UC   ACAUUUC 	 UAUGUAUGA              AG   UGUAAGG 	                          AAA       U
+10000	1	hsa-miR-1	-18.6	1560	U         CAUG  CCCC G      A	 GUAUAUACU    UC    A AUUCCA 	 UAUGUAUGA    AG    U UAAGGU 	                 AAA G       
+10000	1	hsa-miR-1	-16.3	817	      C      G      AU	       CUUCUU ACAUUU  	       GAAGAA UGUAAG  	UAUGUAU      A      GU
+10000	1	hsa-miR-1	-17.2	603	U        AAUUUUUU       A     U	 AUAUAUAU        UUUUUUA AUUCC 	 UAUGUAUG        AAGAAAU UAAGG 	                        G     U
+10000	1	hsa-miR-1	-17.2	484	C        GUAAAGC    CAGA    U	 GUGCAUAU       ACAU    UCCG 	 UAUGUAUG       UGUA    AGGU 	          AAGAAA             
+10000	1	hsa-miR-1	-16.8	375	G     CUGA    AGG        U	 AUACA    UUCU   UACAUUUU 	 UAUGU    AAGA   AUGUAAGG 	       AUG      A        U
+10000	1	hsa-miR-1	-16.6	305	  C   UG   AUUUG         A	   CAU  UUC     UGCA  CCA 	   GUA  AAG     AUGU  GGU 	UAU   UG      AA    AA    
+10000	1	hsa-miR-1	-18.6	163	 C      ACG AAA    C    G	  ACAUAC   C   UACA UCCA 	  UGUAUG   G   AUGU AGGU 	UA       AA  AA    A     
+10000	1	hsa-miR-1	-17.0	83	 C     GCAGGGGCAC     CG    C   G	  ACAUA          CUUC   ACAU CCA 	  UGUAU          GAAG   UGUA GGU 	UA                   AAA    A    
+10000	1	hsa-miR-1	-15.4	13	C          ACUGU   C    A	 UGC UACUUC     CAU UUCA 	 AUG AUGAAG     GUA AGGU 	U   U       AAAU         
