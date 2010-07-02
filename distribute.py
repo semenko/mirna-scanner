@@ -20,8 +20,10 @@ import time
 
 # Most settings are in scan.py. They should be given CLI flags.
 
-CLUSTER_START = 1 # Inclusive
-CLUSTER_STOP = 32 # Exclusive
+# Node 0 and node 29 are down.
+NODES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,\
+         18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30, 31]
+CLUSTER_HN_PREFIX = 'compute-0-'
 
 # Database Settings
 ORACLE_SERVER = 'feservertest.wustl.edu'
@@ -58,10 +60,23 @@ def main():
     mirna_id_dbcursor.close()
 
     number_of_mirna =  mirna_mirid_queries[0][0]
-    comp_count = CLUSTER_STOP - CLUSTER_START
+    comp_count = len(NODES)
 
     increment = int(math.ceil(float(number_of_mirna) / comp_count))
     print "Distributing %s miRNA over %s machines [%s per machine]." % (number_of_mirna, comp_count, increment)
+
+    for machine in NODES:
+        hostname = CLUSTER_HN_PREFIX + str(machine)
+        print "\tStarting machine %s" % hostname
+        process = subprocess.Popen(['ssh', hostname, '/usr/bin/screen -d -m -S rnahybrid-cluster-job JOB HERE',],
+                                   shell=False,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        stdoutdata, stderrdata = process.communicate()
+        for line in stdoutdata.split('\n')[:-1]:
+            print line
+        if process.returncode != 0 or len(stderrdata) != 0:
+            print "ERROR: Unable to start %s" % hostname
 
 
     #if range_given:

@@ -20,6 +20,7 @@ import subprocess
 import sys
 import threading
 import time
+import yappi
 import zlib
 from optparse import OptionParser, OptionGroup
 
@@ -32,6 +33,7 @@ from optparse import OptionParser, OptionGroup
 RNAHYBRID_PATH = 'rnahybrid/src/RNAhybrid'
 
 # Database Settings
+ORACLE_SERVER = '192.168.2.18'
 ORACLE_SERVER = 'feservertest.wustl.edu'
 ORACLE_DB = 'CHIPDB'
 ORACLE_USERNAME = 'mirtarget'
@@ -41,7 +43,7 @@ ORACLE_PWFILE = '.oracle_password'
 RESULTS_PATH = 'results/'
 
 
-def SQLGenerator(cursor, arraysize = 1000):
+def SQLGenerator(cursor, arraysize = 2000):
     """ Don't fetchall (given ram) or fetchone (given net), so fetchmany! """
     
     while True:
@@ -121,18 +123,23 @@ def rnahybrid(utr_seq, mirna_query):
     results = set()
 
     # There's no reason to do a p-value cutoff here. We'd just be throwing away data that we might use later.
-    process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-s', '3utr_human', utr_seq, mirna_query],
+    process = subprocess.Popen([RNAHYBRID_PATH, '-c', '-s', '3utr_human', '-p', '0.8', utr_seq, mirna_query],
                                shell=False,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     stdoutdata, stderrdata = process.communicate()
     for line in stdoutdata.split('\n')[:-1]:
-        # We could unpack, but this get's written to disk in 30 seconds ...
-        mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
-        results.add((float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime))
-
+        # We could unpack, but this is passed out a string anyway ...
+        #mfe, p_value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime = line.split(':')[4:]
+        #results.add((float(mfe), float(p_value), int(pos_from_3prime), target_3prime, target_bind, mirna_bind, mirna_5prime))
+        results.add(tuple(line.split(':')[4:]))
+    
     if process.returncode != 0 or len(stderrdata) != 0:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
+
+    # Now, apply the filter to our results
+    # TODO: Filter these results, somehow
+
 
     return results
 
@@ -156,6 +163,7 @@ def sanity_overlap_check(in_dict):
 ### ---------------------------------------------    
 def main():
     """ Main execution. """
+    yappi.start()
 
     # Begin timing execution
     starttime = time.time()
@@ -292,10 +300,8 @@ def main():
 
     _work_queue_generator = _get_item_for_work_queue(dbase, mirna_queries, homologene_to_mrna, mrna_to_seq, mrna_to_exons)
 
-    print len(homologene_to_mrna)
-
     lol = []
-    for _ in range(50):
+    for _ in range(10):
         lol.append(_work_queue_generator.next())
 
     # WARNING: Queue calls can and /will/ block! Be careful!
@@ -357,7 +363,7 @@ def main():
                 try:
                     fh.write(str(result_queue.get(True, 5)))
                 except Queue.Empty:
-                    time.sleep(1)
+                    pass
             # At this point, all our threads have died.
             time.sleep(1) # A second to catch up, just in case.
             while result_queue.qsize() > 0:
@@ -370,6 +376,10 @@ def main():
             
 
     print "Execution took: %s secs." % (time.time()-starttime)
+
+    stats = yappi.get_stats()
+    for stat in stats: print stat
+    yappi.stop()
 
 
 
