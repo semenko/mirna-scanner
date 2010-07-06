@@ -12,6 +12,7 @@
 from __future__ import generators
 import cx_Oracle
 import datetime
+import math
 import os
 import Queue
 import re
@@ -100,17 +101,29 @@ class RNAHybridThread(threading.Thread):
                 while self.__output_queue.full():
                     print "Output queue is full! (Strange. Network issues?) Sleeping."
                     time.sleep(1)
-                # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
+                    
+                scores = {} # Results storing dict
+                # Keys: micro_rna_id, micro_rna_cluster, hge_homologene_id, homolog_cluster
+                # Vals: 
                 micro_rna_id, micro_rna_cluster, hge_homologeneid, homolog_cluster = task # Unpack task from queue
                 for local_taxid, microrna_seq in micro_rna_cluster:
                     try:
                         # WARNING: homolog_cluster can include more than one item, as the primary key for mRNA is
                         #          both mrc_geneid AND mrc_transcript_no
+
+                        # This keeps SUM(exp(DELTA_G))
+                        human_score = 0
+                        # 7951 = human local tax
                         for mrc_geneid, mrc_transcript_no, exon_seq in homolog_cluster[local_taxid]:
                             ## Results is a set of tuples (all data in 5'->3' direction):
                             ## mfe, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime
                             ## ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
-                            results = rnahybrid(exon_seq, microrna_seq)
+                            filtered_rnahybrid = rnahybrid(exon_seq, microrna_seq)
+                            if local_taxid = 7951: # Human Local Tax ID
+                                unweighted_score = 0
+                                for item in filtered_rnahybrid:
+                                    unweighted_score += math.exp(item[0])
+                            
                     except KeyError:
                         # No matching microRNA -> mRNA species pair.
                         pass
@@ -158,7 +171,6 @@ def rnahybrid(utr_seq, mirna_query):
         # We may wish to unpack these values, and store first two as int().
         # Filter output is \t separated, and looks like (after splitting):
         # ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
-        print line.split('\t')[3:]
         results.add(tuple(line.split('\t')[3:]))
     
     if process1.returncode != None:
