@@ -16,6 +16,7 @@ import math
 import os
 import Queue
 import re
+import scan_data
 import socket
 import subprocess
 import sys
@@ -43,6 +44,14 @@ ORACLE_SERVER = 'feservertest.wustl.edu'
 ORACLE_DB = 'CHIPDB'
 ORACLE_USERNAME = 'mirtarget'
 ORACLE_PWFILE = '.oracle_password'
+
+# Write result settings
+ORACLE_WRITE_SERVER = '192.168.2.18'
+ORACLE_WRITE_SERVER = 'feservertest.wustl.edu'
+ORACLE_WRITE_DB = 'CHIPDB'
+ORACLE_WRITE_USERNAME = 'nsemenkovich'
+ORACLE_WRITE_PWFILE = '.oracle_write_password'
+
 
 # Where to store results
 RESULTS_PATH = 'results/'
@@ -83,11 +92,13 @@ class FilterError(Exception):
 class RNAHybridThread(threading.Thread):
     """ The worker thread for RNAhybrid. """
 
-    def __init__(self, thread_num, consume, input_queue, output_queue):
+    def __init__(self, thread_num, consume, input_queue, output_queue, species_index, weight_matrix):
         self.thread_num = thread_num
         self.consume = consume
         self.__input_queue = input_queue
         self.__output_queue = output_queue
+        self.species_index = species_index # For looking up a weight
+        self.weight_matrix = weight_matrix # Weights, for scaling exp(delta_g)
         threading.Thread.__init__(self) # Remember to init our overridden base class
 
     def run(self):
@@ -101,29 +112,36 @@ class RNAHybridThread(threading.Thread):
                 while self.__output_queue.full():
                     print "Output queue is full! (Strange. Network issues?) Sleeping."
                     time.sleep(1)
-                    
-                scores = {} # Results storing dict
-                # Keys: micro_rna_id, micro_rna_cluster, hge_homologene_id, homolog_cluster
-                # Vals: 
+
+                # Results stores thing we'll put in our output queue, that later get written to the database
+                results = []
+                # Stores tuples of:
+                # (micro_rna_id, local_taxid, microrna_seq, mrc_geneid, mrc_transcript_no, exon_seq, filtered_rnahybrid, unweighted_score, weighted_score)
+                
                 micro_rna_id, micro_rna_cluster, hge_homologeneid, homolog_cluster = task # Unpack task from queue
+                
                 for local_taxid, microrna_seq in micro_rna_cluster:
                     try:
                         # WARNING: homolog_cluster can include more than one item, as the primary key for mRNA is
                         #          both mrc_geneid AND mrc_transcript_no
 
-                        # This keeps SUM(exp(DELTA_G))
-                        human_score = 0
                         # 7951 = human local tax
                         for mrc_geneid, mrc_transcript_no, exon_seq in homolog_cluster[local_taxid]:
                             ## Results is a set of tuples (all data in 5'->3' direction):
                             ## mfe, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime
                             ## ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
                             filtered_rnahybrid = rnahybrid(exon_seq, microrna_seq)
-                            if local_taxid = 7951: # Human Local Tax ID
-                                unweighted_score = 0
-                                for item in filtered_rnahybrid:
-                                    unweighted_score += math.exp(item[0])
+
+                            # Compute the unweighted sum(exp(delta_g)) score
+                            unweighted_score = 0.0
+                            for item in filtered_rnahybrid:
+                                unweighted_score += math.exp(float(item[0]))
+                            weighted_score = 123
                             
+                            
+                            results.append((micro_rna_id, local_taxid, microrna_seq, mrc_geneid,
+                                            mrc_transcript_no, exon_seq, filtered_rnahybrid, unweighted_score, weighted_score))
+
                     except KeyError:
                         # No matching microRNA -> mRNA species pair.
                         pass
@@ -262,7 +280,13 @@ def main():
     # Connect to Database
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
     dbase = cx_Oracle.connect(ORACLE_USERNAME, oracle_password, ORACLE_SERVER + ':1521/' + ORACLE_DB)
-    print "Connected to %s\n" % dbase.dsn
+    print "Connected to [read] %s (USER: %s)\n" % (dbase.dsn, ORACLE_USERNAME)
+
+    # Connect to writing database, too
+    oracle_write_password = open(ORACLE_WRITE_PWFILE, 'r').readline()
+    dbase_write = cx_Oracle.connect(ORACLE_WRITE_USERNAME, oracle_write_password,
+                                    ORACLE_WRITE_SERVER + ':1521/' + ORACLE_WRITE_DB)
+    print "Connected to [write] %s (USER: %s)\n" % (dbase_write.dsn, ORACLE_WRITE_USERNAME)
 
 
     # Define the species sets we're looking at
@@ -289,6 +313,21 @@ def main():
     assert(len(globalTaxMap) == len(localTaxMap))
     assert(len(localTaxMap) == len(UCSCTaxMap))
 
+    # Species Index for determining weights later
+    # We lookup weights using: index = sum(2**species_index)
+    species_index = {'hg18': 0,
+                     'panTro2': 1,
+                     'ponAbe2': 2,
+                     'mm9': 3,
+                     'rn4': 4,
+                     'rheMac2': 5,
+                     'monDom4': 6,
+                     'bosTau4': 7,
+                     'canFam2': 8,
+                     'equCab2': 9}
+
+    # Import our huge weight "matrix", which is a long list
+    weight_matrix = scan_data.human_weight
 
     ### ---------------------------------------------
     # First, we get the microRNA clusters.
@@ -392,7 +431,7 @@ def main():
             print "Spawning %s threads." % str(options.threads)
             consume_event = threading.Event()
             for i in range(options.threads):
-                thread = RNAHybridThread(i, consume_event, work_queue, result_queue)
+                thread = RNAHybridThread(i, consume_event, work_queue, result_queue, species_index, weight_matrix)
                 thread.daemon = True
                 thread.start()
             _first_run = False
