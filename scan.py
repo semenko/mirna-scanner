@@ -25,6 +25,8 @@ import time
 #import yappi
 import zlib
 from optparse import OptionParser, OptionGroup
+from bx.align import maf
+from bx import interval_index_file
 
 ### -------------------------------
 ### Config Options
@@ -52,10 +54,11 @@ ORACLE_WRITE_DB = 'CHIPDB'
 ORACLE_WRITE_USERNAME = 'nsemenkovich'
 ORACLE_WRITE_PWFILE = '.oracle_write_password'
 
-
 # Where to store results
 RESULTS_PATH = 'results/'
 
+# Where to read alignments from (we expect this path + GENEID/GENEID.maf.ordered
+ALIGN_PATH = '/export/RAID_Drive_A/backup/Li-Wei/mtap/tba/seq/'
 
 def SQLGenerator(cursor, arraysize = 2000):
     """ Don't fetchall (given ram) or fetchone (given net), so fetchmany! """
@@ -102,7 +105,7 @@ class RNAHybridThread(threading.Thread):
         threading.Thread.__init__(self) # Remember to init our overridden base class
 
     def run(self):
-        """ The workhorse of our thread. """
+        """ The workhorse of our thread. This works one one miRNA cluster -> homolog_cluster pair. """
         while True:
             self.consume.wait() # Wait until the "consume" event is True
             try:
@@ -110,41 +113,69 @@ class RNAHybridThread(threading.Thread):
                 # Check to make sure the output queue isn't full.
                 # This shouldn't be the case, as Network Speed >>>> RNAHybrid Output Speed
                 while self.__output_queue.full():
-                    print "Output queue is full! (Strange. Network issues?) Sleeping."
+                    print "Output queue is full! (Strange. Database issues?) Sleeping."
                     time.sleep(1)
 
-                # Results stores thing we'll put in our output queue, that later get written to the database
-                results = []
-                # Stores tuples of:
-                # (micro_rna_id, local_taxid, microrna_seq, mrc_geneid, mrc_transcript_no, exon_seq, filtered_rnahybrid, unweighted_score, weighted_score)
-                
                 micro_rna_id, micro_rna_cluster, hge_homologeneid, homolog_cluster = task # Unpack task from queue
                 
+                # This is temporary storage for RNAhybrid results.
+                filtered_rnahybrid = {}
+
                 for local_taxid, microrna_seq in micro_rna_cluster:
                     try:
                         # WARNING: homolog_cluster can include more than one item, as the primary key for mRNA is
                         #          both mrc_geneid AND mrc_transcript_no
 
-                        # 7951 = human local tax
                         for mrc_geneid, mrc_transcript_no, exon_seq in homolog_cluster[local_taxid]:
                             ## Results is a set of tuples (all data in 5'->3' direction):
                             ## mfe, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime
                             ## ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
-                            filtered_rnahybrid = rnahybrid(exon_seq, microrna_seq)
 
-                            # Compute the unweighted sum(exp(delta_g)) score
-                            unweighted_score = 0.0
-                            for item in filtered_rnahybrid:
-                                unweighted_score += math.exp(float(item[0]))
-                            weighted_score = 123
-                            
-                            
-                            results.append((micro_rna_id, local_taxid, microrna_seq, mrc_geneid,
-                                            mrc_transcript_no, exon_seq, filtered_rnahybrid, unweighted_score, weighted_score))
+                            # This spawns an rnahybrid subprocess (via rnahybrid(exon_seq, microrna_seq))
+                            filtered_rnahybrid.setdefault(local_taxid, []).append([microrna_seq, mrc_geneid, mrc_transcript_no, rnahybrid(exon_seq, microrna_seq)])
 
                     except KeyError:
                         # No matching microRNA -> mRNA species pair.
                         pass
+
+                ## We're done calling RNAhybrid and filtering it. Now let's compute scores and put results in the output queue.
+                
+                # Store result tuples of:
+                # (micro_rna_id, local_taxid, microrna_seq, mrc_geneid, mrc_transcript_no, exon_seq, filtered_rnahybrid, unweighted_score, weighted_score)
+                results = []
+
+                # Loop over the human RNAhybrid runs, and compute their
+                # weighted (using the MAF alignment files) and unweighted scores
+                #
+                # 7951 = human local tax id (TODO: Pull from dict, and shift dict to global element.)
+
+                for human_alignment in filtered_rnahybrid[7951]:
+                    # Unpack values
+                    microrna_seq, mrc_geneid, mrc_transcript_no, rnahybrid_data = human_alignment
+
+                    unweighted_score = 0.0
+                    # Compute the unweighted sum(exp(delta_g)) score
+                    for item in rnahybrid_data:
+                        unweighted_score += math.exp(float(item[0]))
+                    
+                    weighted_score = 0.0
+                    try:
+                        alignment_file = open(ALIGN_PATH + str(mrc_geneid) + '/' + str(mrc_geneid) + '.maf.ordered', 'rb')
+                        alignment_file.close()
+                        print "Align found."
+                    except IOError:
+                        print "%s %s .maf.ordered" % (ALIGN_PATH, str(mrc_geneid))
+                        print "NO align."
+                        pass
+
+                    # We lookup weights using: index = sum(2**species_index)
+                    # self.species_index[]
+                    # self.weight_matrix[]
+                    
+                    results.append((micro_rna_id, hge_homologeneid,
+                                    local_taxid, mrc_geneid, mrc_transcript_no,
+                                    weighted_score, unweighted_score,
+                                    rnahybrid_data))
 
                 self.__output_queue.put(results, True) # Block until a free slot is available.
             except Queue.Empty:
@@ -152,8 +183,7 @@ class RNAHybridThread(threading.Thread):
                 # and the main thread can't fill the Queue fast enough.
                 print "Nothing in work_queue: Thread %s dying." % self.thread_num
                 break
-                            
-                
+
 
 def rnahybrid(utr_seq, mirna_query):
     """ Execute RNAhybrid.
@@ -163,7 +193,7 @@ def rnahybrid(utr_seq, mirna_query):
     """
     # Set storing RNAhybrid output
     # Value = (mfe, p-value, pos_from_3prime, target_3prime, target_bind, mirna_bind, mirna_5prime)
-    results = set()
+    results = []
 
     # We may later wish to add a p-value cutoff here, to help filter.pl out. Not clear.
     # RNAhybrid outputs:
@@ -189,8 +219,15 @@ def rnahybrid(utr_seq, mirna_query):
         # We may wish to unpack these values, and store first two as int().
         # Filter output is \t separated, and looks like (after splitting):
         # ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
-        results.add(tuple(line.split('\t')[3:]))
-    
+        
+        # Filter to bindings of >=8 bases
+        #if re.search("[ATGCN]{8,}", strn)
+
+        results.append(tuple(line.split('\t')[3:]))
+
+    # Sort the list by position. This can be costly :(
+    results.sort(lambda x, y,: cmp(int(x[1]), int(y[1])))
+
     if process1.returncode != None:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
 
