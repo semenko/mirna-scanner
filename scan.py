@@ -17,7 +17,6 @@ import os
 import Queue
 import re
 import scan_data
-import socket
 import subprocess
 import sys
 import threading
@@ -149,33 +148,33 @@ class RNAHybridThread(threading.Thread):
                 #
                 # 7951 = human local tax id (TODO: Pull from dict, and shift dict to global element.)
 
-                for human_alignment in filtered_rnahybrid[7951]:
-                    # Unpack values
-                    microrna_seq, mrc_geneid, mrc_transcript_no, rnahybrid_data = human_alignment
-
-                    unweighted_score = 0.0
-                    # Compute the unweighted sum(exp(delta_g)) score
-                    for item in rnahybrid_data:
-                        unweighted_score += math.exp(float(item[0]))
+                try:
+                    for human_alignment in filtered_rnahybrid[7951]:
+                        # Unpack values
+                        microrna_seq, mrc_geneid, mrc_transcript_no, rnahybrid_data = human_alignment
+                        
+                        unweighted_score = 0.0
+                        # Compute the unweighted sum(exp(delta_g)) score
+                        for item in rnahybrid_data:
+                            unweighted_score += math.exp(float(item[0]))
                     
-                    weighted_score = 0.0
-                    try:
-                        alignment_file = open(ALIGN_PATH + str(mrc_geneid) + '/' + str(mrc_geneid) + '.maf.ordered', 'rb')
-                        alignment_file.close()
-                        print "Align found."
-                    except IOError:
-                        print "%s %s .maf.ordered" % (ALIGN_PATH, str(mrc_geneid))
-                        print "NO align."
-                        pass
-
-                    # We lookup weights using: index = sum(2**species_index)
-                    # self.species_index[]
-                    # self.weight_matrix[]
+                        weighted_score = 0.0
+                        try:
+                            alignment_file = open(ALIGN_PATH + str(mrc_geneid) + '/' + str(mrc_geneid) + '.maf.ordered', 'rb')
+                            # We lookup weights using: index = sum(2**species_index)
+                            # self.species_index[]
+                            # self.weight_matrix[]
+                            alignment_file.close()
+                            print "Align found."
+                        except IOError:
+                            pass
                     
-                    results.append((micro_rna_id, hge_homologeneid,
-                                    local_taxid, mrc_geneid, mrc_transcript_no,
-                                    weighted_score, unweighted_score,
-                                    rnahybrid_data))
+                        results.append([micro_rna_id, hge_homologeneid,
+                                        local_taxid, mrc_geneid, mrc_transcript_no,
+                                        weighted_score, unweighted_score,
+                                        str(rnahybrid_data)])
+                except KeyError:
+                    print "*No 7951 local taxid in that cluster! Wasted work."
 
                 self.__output_queue.put(results, True) # Block until a free slot is available.
             except Queue.Empty:
@@ -226,7 +225,7 @@ def rnahybrid(utr_seq, mirna_query):
         results.append(tuple(line.split('\t')[3:]))
 
     # Sort the list by position. This can be costly :(
-    results.sort(lambda x, y,: cmp(int(x[1]), int(y[1])))
+    results.sort(lambda x, y: cmp(int(x[1]), int(y[1])))
 
     if process1.returncode != None:
         raise RNAHybridError('An error occurred in executing RNAhybrid.')
@@ -257,7 +256,7 @@ def sanity_overlap_check(in_dict):
 ### ---------------------------------------------    
 def main():
     """ Main execution. """
-    #yappi.start()
+#    yappi.start()
 
     # Begin timing execution
     starttime = time.time()
@@ -300,19 +299,9 @@ def main():
         parser.error("You must specify an outfile if you don't provide range options.\n\nTry -h for help.")
 
 
-    # Make our results path, and make sure we can write to it.
-    if len(args) == 1:
-        results_file = RESULTS_PATH + args[0]
-        state_file = results_file + '.state'
-    else:
-        datestamp = datetime.datetime.now().strftime("%m%d-%H%M")
-        results_file = RESULTS_PATH + datestamp + '.' + socket.gethostname().split('.')[0]
-
-    print "\nWriting output to: %s" % results_file
-    # Make our results path, if necessary
-    if not os.path.exists(RESULTS_PATH):
-        os.makedirs(RESULTS_PATH)
-    open(results_file, 'w').close()
+    # If we don't want results written to the database, we can write them to a flatfile
+    # datestamp = datetime.datetime.now().strftime("%m%d-%H%M")
+    # results_file = RESULTS_PATH + datestamp + '.' + socket.gethostname().split('.')[0]
 
     # Connect to Database
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
@@ -401,8 +390,6 @@ def main():
     drain_increment = 50 # how many results to send off/write at a given time
     critical_high_mark = 400 # Site at which we stall threads, as result_queue is too big!
 
-    stall_interval = 1 # How long (secs) to stall threads for (hopefully not necessary!)
-    
     assert(low_water_mark < work_queue_size)
     assert(critical_low_mark < low_water_mark)
     assert(high_water_mark < result_queue_size)
@@ -455,12 +442,8 @@ def main():
                 print "WARN: Work queue is too small! Something is wrong!"
                 consume_event.clear() # Stall threads.
 
-            # We reopen/close this handle, as NFS is sketchy.
-            fh = open(results_file, 'a')
-            for _ in range(drain_increment):
-                # Send some results off to the collector, or write them to disk.
-                fh.write(str(result_queue.get()))
-            fh.close()
+            # Insert up to drain_increment elements into the database
+            _write_results_to_database(dbase_write, result_queue, drain_increment)
 
 
         if _first_run:
@@ -476,18 +459,13 @@ def main():
 
         if _out_of_work:
             # First, wait for results_queue to be completely emptied
-            fh = open(results_file, 'a')
             while (threading.active_count() - 1) > 0:
-                try:
-                    fh.write(str(result_queue.get(True, 5)))
-                except Queue.Empty:
-                    pass
+                _write_results_to_database(dbase_write, result_queue, 10)
             # At this point, all our threads have died.
             time.sleep(1) # A second to catch up, just in case.
             while result_queue.qsize() > 0:
-                fh.write(str(result_queue.get()))
+                _write_results_to_database(dbase_write, result_queue, 1)
             print "All done!"
-            fh.close()
             break
 
         consume_event.set() # Let's go to work!
@@ -500,6 +478,23 @@ def main():
 #    yappi.stop()
 
 
+def _write_results_to_database(dbase, result_queue, drain_increment):
+    """ Write results to dbase. """
+
+    write_cursor = dbase.cursor()
+    write_cursor.prepare("INSERT INTO NSEMENKOVICH.RESULTS VALUES (:1, :2, :3, :4, :5, :6, :7, :8)")
+    write_cursor.setinputsizes(None, None, None, None, None, None, None, cx_Oracle.CLOB)
+
+    for _ in range(drain_increment):
+        try:
+            write_cursor.executemany(None, result_queue.get(True, 1))
+        except Queue.Empty:
+            time.sleep(1)
+    
+#        micro_rna_id, hge_homologeneid, local_taxid, mrc_geneid, mrc_transcript_no, weighted_score, unweighted_score, rnahybrid_data = result_queue.get(True, 5)
+
+    dbase.commit()
+    write_cursor.close()
 
 def _get_microrna_data(dbase, range_given, startNum, stopNum, localTaxMap, UCSCTaxMap):
     """ Retreive microRNA data
