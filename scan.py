@@ -12,17 +12,17 @@
 from __future__ import generators
 import cx_Oracle
 import datetime
+import logging
 import math
 import os
 import Queue
 import re
 import scan_data
+import socket
 import subprocess
-import sys
 import threading
 import time
-#import yappi
-import zlib
+import yappi
 from optparse import OptionParser, OptionGroup
 from bx.align import maf
 from bx import interval_index_file
@@ -53,8 +53,8 @@ ORACLE_WRITE_DB = 'CHIPDB'
 ORACLE_WRITE_USERNAME = 'nsemenkovich'
 ORACLE_WRITE_PWFILE = '.oracle_write_password'
 
-# Where to store results
-RESULTS_PATH = 'results/'
+# Where to store log files of a run
+LOG_PATH = 'results/'
 
 # Where to read alignments from (we expect this path + GENEID/GENEID.maf.ordered
 ALIGN_PATH = '/export/RAID_Drive_A/backup/Li-Wei/mtap/tba/seq/'
@@ -101,6 +101,7 @@ class RNAHybridThread(threading.Thread):
         self.__output_queue = output_queue
         self.species_index = species_index # For looking up a weight
         self.weight_matrix = weight_matrix # Weights, for scaling exp(delta_g)
+        self.logger = logging.getLogger('thread_%d' % thread_num)
         threading.Thread.__init__(self) # Remember to init our overridden base class
 
     def run(self):
@@ -112,11 +113,11 @@ class RNAHybridThread(threading.Thread):
                 # Check to make sure the output queue isn't full.
                 # This shouldn't be the case, as Network Speed >>>> RNAHybrid Output Speed
                 while self.__output_queue.full():
-                    print "Output queue is full! (Strange. Database issues?) Sleeping."
+                    self.logger.error("Output queue is full! (Strange. Database issues?) Sleeping.")
                     time.sleep(1)
 
                 micro_rna_id, micro_rna_cluster, hge_homologeneid, homolog_cluster = task # Unpack task from queue
-                
+                self.logger.info("Working on microrna: %s / homologene: %d" % (micro_rna_id, hge_homologeneid))
                 # This is temporary storage for RNAhybrid results.
                 filtered_rnahybrid = {}
 
@@ -165,22 +166,22 @@ class RNAHybridThread(threading.Thread):
                             # self.species_index[]
                             # self.weight_matrix[]
                             alignment_file.close()
-                            print "Align found."
+                            self.logger.debug("Align found for: %d" % mrc_geneid)
                         except IOError:
-                            pass
+                            self.logger.debug("No align for: %d" % mrc_geneid)
                     
                         results.append([micro_rna_id, hge_homologeneid,
                                         local_taxid, mrc_geneid, mrc_transcript_no,
                                         weighted_score, unweighted_score,
                                         str(rnahybrid_data)])
                 except KeyError:
-                    print "*No 7951 local taxid in that cluster! Wasted work."
+                    self.logger.warning("No human taxonomy in microrna: %s / homologene: %d. Work was wasted." % (micro_rna_id, hge_homologeneid))
 
                 self.__output_queue.put(results, True) # Block until a free slot is available.
             except Queue.Empty:
                 # Nothing in the queue, so we're either done, or something bad has happened
                 # and the main thread can't fill the Queue fast enough.
-                print "Nothing in work_queue: Thread %s dying." % self.thread_num
+                self.logger.warning("Nothing in work_queue: Thread dying.")
                 break
 
 
@@ -239,7 +240,8 @@ def rnahybrid(utr_seq, mirna_query):
 
 def sanity_overlap_check(in_dict):
     """ Sanity check to ensure start/stop positions don't overlap. """
-    print "Validating bounds."
+    log_func = logging.getLogger('sanity_overlap_check')
+    log_func.info("Validating bounds.")
     for value in in_dict.itervalues():
         start_old = 0
         end_old = 0
@@ -248,7 +250,7 @@ def sanity_overlap_check(in_dict):
             assert((item[0] > end_old) and (item[1] > end_old))
             start_old = item[0]
             end_old = item[1]
-    print "Validated.\n"
+    log_func.info("Validated.")
 
 
 ### ---------------------------------------------
@@ -256,7 +258,6 @@ def sanity_overlap_check(in_dict):
 ### ---------------------------------------------    
 def main():
     """ Main execution. """
-#    yappi.start()
 
     # Begin timing execution
     starttime = time.time()
@@ -266,6 +267,9 @@ def main():
     # Same for Perl filter_rnahybrid script
     assert(os.path.exists(FILTER_PATH) and os.access(FILTER_PATH, os.X_OK))
     assert(os.path.exists(FILTER_SETTINGS))
+    
+    assert(os.path.exists(ALIGN_PATH))
+    assert(os.path.exists(LOG_PATH))
 
     usage = "usage: %prog [OPTIONS] outfile"
     parser = OptionParser(usage)
@@ -273,6 +277,8 @@ def main():
     # This ignores hyperthreading pseudo-cores, which is fine since we hose the ALU
     parser.add_option("-j", help="Threads. We parallelize the invocations of RNAhybrid. [Default: # of CPU cores]",
                       default=os.sysconf('SC_NPROCESSORS_ONLN'), action="store", type="int", dest="threads")
+    parser.add_option("-p", help="Profile. Invokes the yappi python profiling engine. Will slow down execution.",
+                      default=False, action="store_true", dest="profileMe")
 
     group = OptionGroup(parser, "Range Settings (optional)")
     group.add_option("--start-num", help="What number miRNA ortholog group to start scanning from (inclusive).",
@@ -298,21 +304,42 @@ def main():
     if len(args) == 0 and not range_given:
         parser.error("You must specify an outfile if you don't provide range options.\n\nTry -h for help.")
 
+    # Set logging output, as flags passed were valid.
+    # We log DEBUG and higher to log file, and write INFO and higher to console.
+    datestamp = datetime.datetime.now().strftime("%m%d-%H%M")
+    logfile = LOG_PATH + datestamp + '.' + socket.gethostname().split('.')[0]
+    logging.basicConfig(filename = logfile, filemode = 'w',
+                        format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        level = logging.DEBUG)
+    
+    # define a Handler which writes INFO messages or higher to the sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter('%(name)-25s: %(levelname)-8s %(message)s')
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
 
-    # If we don't want results written to the database, we can write them to a flatfile
-    # datestamp = datetime.datetime.now().strftime("%m%d-%H%M")
-    # results_file = RESULTS_PATH + datestamp + '.' + socket.gethostname().split('.')[0]
+    log_main = logging.getLogger('main')
+    
+    log_main.info('Logging to %s' % logfile)
+    log_main.info('Starting run on %s' % socket.gethostname().split('.')[0])
+    log_main.info('miRNA range: [%d, %d]' % (options.startNum, options.stopNum))
+
+    if options.profileMe:
+        log_main.info('Profiling enabled.')
+        yappi.start()
 
     # Connect to Database
     oracle_password = open(ORACLE_PWFILE, 'r').readline()
     dbase = cx_Oracle.connect(ORACLE_USERNAME, oracle_password, ORACLE_SERVER + ':1521/' + ORACLE_DB)
-    print "Connected to [read] %s (USER: %s)\n" % (dbase.dsn, ORACLE_USERNAME)
+    log_main.info("Connected to [read] %s (USER: %s)" % (dbase.dsn, ORACLE_USERNAME))
 
     # Connect to writing database, too
     oracle_write_password = open(ORACLE_WRITE_PWFILE, 'r').readline()
     dbase_write = cx_Oracle.connect(ORACLE_WRITE_USERNAME, oracle_write_password,
                                     ORACLE_WRITE_SERVER + ':1521/' + ORACLE_WRITE_DB)
-    print "Connected to [write] %s (USER: %s)\n" % (dbase_write.dsn, ORACLE_WRITE_USERNAME)
+    log_main.info("Connected to [write] %s (USER: %s)" % (dbase_write.dsn, ORACLE_WRITE_USERNAME))
 
 
     # Define the species sets we're looking at
@@ -410,45 +437,45 @@ def main():
         lol.append(_work_queue_generator.next())
 
     # WARNING: Queue calls can and /will/ block! Be careful!
-    print "Work  | Result | Threads"
     while True:
-        print " %s \t  %s \t  %s " % (str(work_queue.qsize()), str(result_queue.qsize()), threading.active_count()-1)
+        log_main.info("(work|result|threads) = %s, %s, %s " %
+                     (str(work_queue.qsize()), str(result_queue.qsize()), threading.active_count()-1))
         time.sleep(2)
 
         while (work_queue.qsize() < low_water_mark) and (_out_of_work == False):
-            print "Filling work queue."
+            log_main.debug("Filling work queue.")
             # We call a generator to keep our work_queue mostly full
             for _ in range(fillup_increment):
                 try:
                     work_queue.put(lol.pop())
 #                    work_queue.put(_work_queue_generator.next())
                 except StopIteration:
-                    print "Out of work: Waiting for work_queue to be emptied by threads ..."
+                    log_main.debug("Out of work: Waiting for work_queue to be emptied by threads ...")
                     _out_of_work = True
                 except IndexError:
-                    print "Out of work: Waiting for work_queue to be emptied by threads ..."
+                    log_main.debug("Out of work: Waiting for work_queue to be emptied by threads ...")
                     _out_of_work = True
                     break
                                                             
 
         while result_queue.qsize() > high_water_mark:
-            print "Draining result_queue."
+            log_main.debug("Draining result_queue.")
             
             # These queue checks are imperfect, but should never be triggered.
             if result_queue.qsize() > critical_high_mark:
-                print "WARN: Result queue is too big! Something is wrong!"
+                log_main.error("Result queue is too big! Something is wrong!")
                 consume_event.clear() # Stall threads.
             if (work_queue.qsize() < critical_low_mark) and (_out_of_work == False):
-                print "WARN: Work queue is too small! Something is wrong!"
+                log_main.error("Work queue is too small! Something is wrong!")
                 consume_event.clear() # Stall threads.
 
             # Insert up to drain_increment elements into the database
-            _write_results_to_database(dbase_write, result_queue, drain_increment)
+            _write_results_to_db(dbase_write, result_queue, drain_increment)
 
 
         if _first_run:
             # First time we're running, so spawn threads
-            print "Spawning %s threads." % str(options.threads)
+            log_main.info("Spawning %s threads." % str(options.threads))
             consume_event = threading.Event()
             for i in range(options.threads):
                 thread = RNAHybridThread(i, consume_event, work_queue, result_queue, species_index, weight_matrix)
@@ -460,27 +487,30 @@ def main():
         if _out_of_work:
             # First, wait for results_queue to be completely emptied
             while (threading.active_count() - 1) > 0:
-                _write_results_to_database(dbase_write, result_queue, 10)
+                _write_results_to_db(dbase_write, result_queue, 10)
             # At this point, all our threads have died.
             time.sleep(1) # A second to catch up, just in case.
             while result_queue.qsize() > 0:
-                _write_results_to_database(dbase_write, result_queue, 1)
-            print "All done!"
+                _write_results_to_db(dbase_write, result_queue, 1)
+            log_main.info("All done!")
             break
 
         consume_event.set() # Let's go to work!
             
 
-    print "Execution took: %s secs." % (time.time()-starttime)
+    log_main.info("Execution took: %s secs." % (time.time()-starttime))
 
-#    stats = yappi.get_stats()
-#    for stat in stats: print stat
-#    yappi.stop()
+    # Print output of profiling, if it was enabled.
+    if options.profileMe:
+        log_main.debug('Profiling data:')
+        stats = yappi.get_stats()
+        for stat in stats:
+            log_main.debug(stat)
+        yappi.stop()
 
 
-def _write_results_to_database(dbase, result_queue, drain_increment):
+def _write_results_to_db(dbase, result_queue, drain_increment):
     """ Write results to dbase. """
-
     write_cursor = dbase.cursor()
     write_cursor.prepare("INSERT INTO NSEMENKOVICH.RESULTS VALUES (:1, :2, :3, :4, :5, :6, :7, :8)")
     write_cursor.setinputsizes(None, None, None, None, None, None, None, cx_Oracle.CLOB)
@@ -511,6 +541,7 @@ def _get_microrna_data(dbase, range_given, startNum, stopNum, localTaxMap, UCSCT
              keys: MMO_MATUREMIRID
              vals: ((localtaxid, MMO_MATURESEQ), (localtaxid, MMO_MATURESEQ) ...) """
 
+    log_func = logging.getLogger('get_microrna_data')
     species_limit = ''.join(["'" + x + "'," for x in UCSCTaxMap.iterkeys()])[:-1]
     
     # Get list of distinct orthologous groups.
@@ -531,7 +562,7 @@ def _get_microrna_data(dbase, range_given, startNum, stopNum, localTaxMap, UCSCT
     # This is so on a cluster, each machine can run over a selected few miRNAs
     if range_given:
         mirna_mirid_queries = mirna_mirid_queries[startNum:stopNum]
-    print "Targeting %s miRNAs orthologous clusters" % len(mirna_mirid_queries)
+    log_func.info("Targeting %s miRNAs orthologous clusters" % len(mirna_mirid_queries))
     
     # Now that we have the list of miRNA orthologous clusters, make a dict of tuples
     # corresponding to the miRNA values.
@@ -554,12 +585,13 @@ def _get_microrna_data(dbase, range_given, startNum, stopNum, localTaxMap, UCSCT
                 # We convert MMO_SPECIES (e.g. 'canfam2') to a local taxid
                 mirna_queries.setdefault(row[0], set()).add((localTaxMap[UCSCTaxMap[row[1]]], row[2]))
             except AssertionError:
-                print "\tIgnoring miRNA with 'N' or invalid char: %s, %s [mirid, species]" % (row[0], row[1])
+                log_func.warning("Ignoring miRNA with 'N' or invalid char: %s, %s [mirid, species]"
+                                 % (row[0], row[1]))
     mirna_dbcursor.close()
 
     # Sanity check that should never fail (unless you've broken the SQL queries)
     assert(len(mirna_mirid_queries) == len(mirna_queries))
-    print "miRNA data retreived.\n"
+    log_func.info("miRNA data retreived")
     
     return mirna_queries
 
@@ -569,9 +601,10 @@ def _get_homologene_to_mrna(dbase, globalTaxMap):
     #   key: hge_homologeneid # TODO: Double-check that not all HGE_GENEIDs map to MRC_GENEIDs
     #                         # Homologene has 244,950 rows, while the select has only 67,520
     #   val: set((mrc_geneid, mrc_transcript_no), (mrc_geneid, mrc_transcript_no), ...)
+    log_func = logging.getLogger('get_homologene_to_mrna')
     homologene_to_mrna = {}
     species_limit = ''.join(["'" + str(x) + "'," for x in globalTaxMap.itervalues()])[:-1]
-    print "Populating: homologene_to_mrna"
+    log_func.info("Populating: homologene_to_mrna")
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT HGE_HOMOLOGENEID, MRC_GENEID, MRC_TRANSCRIPT_NO "
                        "FROM PAP.HOMOLOGENE, PAP.MRNA_COORDINATES "
@@ -580,7 +613,7 @@ def _get_homologene_to_mrna(dbase, globalTaxMap):
     for row in SQLGenerator(mrna_dbase):
         homologene_to_mrna.setdefault(row[0], set()).add((row[1], row[2]))
     mrna_dbase.close()
-    print "Populated.\n"
+    log_func.info("Populated.")
     return homologene_to_mrna
 
 
@@ -589,9 +622,10 @@ def _get_mrna_to_seq(dbase, globalTaxMap):
     # mrna_to_seq: (Dict)
     #   key: mrc_geneid  # TODO: Double-check that mrc_transcript_no is NOT needed here
     #   val: (gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop)
+    log_func = logging.getLogger('get_mrna_to_seq')
     mrna_to_seq = {}
     species_limit = ''.join(["'" + str(x) + "'," for x in globalTaxMap.itervalues()])[:-1]
-    print "Populating: mrna_to_seq"
+    log_func.info("Populating: mrna_to_seq")
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT(MRC_GENEID), GCS_CHROMOSOME, GCS_TAXID, "
                        "GCS_LOCALTAXID, GCS_COMPLEMENT, GCS_START, GCS_STOP "
@@ -602,7 +636,7 @@ def _get_mrna_to_seq(dbase, globalTaxMap):
         assert(row[5] < row[6]) # Start < Stop
         mrna_to_seq[row[0]] = tuple(row[1:])
     mrna_dbase.close()
-    print "Populated.\n"
+    log_func.info("Populated.")
     return mrna_to_seq
 
 
@@ -611,9 +645,10 @@ def _get_mrna_to_exons(dbase, globalTaxMap):
     # mrna_to_exons: (Dict)
     #   key: (mrc_geneid, mrc_transcript_no)
     #   val: [(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
+    log_func = logging.getLogger('get_mrna_to_exons')
     mrna_to_exons = {}
     species_limit = ''.join(["'" + str(x) + "'," for x in globalTaxMap.itervalues()])[:-1]
-    print "Populating: mrna_to_exons"
+    log_func.info("Populating: mrna_to_exons")
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT MRC_GENEID, MRC_TRANSCRIPT_NO, MRC_START, MRC_STOP "
                        "FROM PAP.MRNA_COORDINATES "
@@ -624,7 +659,7 @@ def _get_mrna_to_exons(dbase, globalTaxMap):
         assert(row[2] < row[3] + 1) # Start < Stop + 1
         mrna_to_exons.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
-    print "Populated.\n"
+    log_func.info("Populated.")
     return mrna_to_exons
 
 
@@ -633,9 +668,10 @@ def _get_mrna_to_cds(dbase, globalTaxMap):
     # mrna_to_cds: (Dict)
     #   key: (mrna_geneid, mrc_transcript_no)
     #   val: [(cds_start, cds_stop), (cds_start, cds_stop), ...]
+    log_func = logging.getLogger('get_mrna_to_cds')
     mrna_to_cds = {}
     species_limit = ''.join(["'" + str(x) + "'," for x in globalTaxMap.itervalues()])[:-1]
-    print "Populating: mrna_to_cds"
+    log_func.info("Populating: mrna_to_cds")
     mrna_dbase = dbase.cursor()
     mrna_dbase.execute("SELECT DISTINCT CDS_GENEID, CDS_TRANSCRIPT_NO, CDS_START, CDS_STOP "
                        "FROM PAP.CDS_COORDINATES "
@@ -646,7 +682,7 @@ def _get_mrna_to_cds(dbase, globalTaxMap):
         assert(row[2] < row[3] + 1) # Start < Stop + 1
         mrna_to_cds.setdefault((row[0], row[1]), []).append((row[2], row[3]))
     mrna_dbase.close()
-    print "Populated.\n"
+    log_func.info("Populated.")
     return mrna_to_cds
 
 
