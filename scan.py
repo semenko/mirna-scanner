@@ -94,7 +94,7 @@ class FilterError(Exception):
 class RNAHybridThread(threading.Thread):
     """ The worker thread for RNAhybrid. """
 
-    def __init__(self, thread_num, consume, input_queue, output_queue, species_index, weight_matrix):
+    def __init__(self, thread_num, consume, input_queue, output_queue, species_index, weight_matrix, mrna_to_seq, mrna_to_exons):
         self.thread_num = thread_num
         self.consume = consume
         self.__input_queue = input_queue
@@ -102,6 +102,8 @@ class RNAHybridThread(threading.Thread):
         self.species_index = species_index # For looking up a weight
         self.weight_matrix = weight_matrix # Weights, for scaling exp(delta_g)
         self.logger = logging.getLogger('thread_%d' % thread_num)
+        self.mrna_to_seq = mrna_to_seq
+        self.mrna_to_exons = mrna_to_exons
         threading.Thread.__init__(self) # Remember to init our overridden base class
 
     def run(self):
@@ -132,11 +134,26 @@ class RNAHybridThread(threading.Thread):
                             ## ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
 
                             # This spawns an rnahybrid subprocess (via rnahybrid(exon_seq, microrna_seq))
-                            filtered_rnahybrid.setdefault(local_taxid, []).append([microrna_seq, mrc_geneid, mrc_transcript_no, rnahybrid(exon_seq, microrna_seq)])
+                            try:
+                                filtered_rnahybrid.setdefault(local_taxid, []).append([microrna_seq,
+                                                                                       mrc_geneid,
+                                                                                       mrc_transcript_no,
+                                                                                       rnahybrid(exon_seq, microrna_seq)])
+                            except RNAHybridError:
+                                self.logger.critical("RNAHybridError thrown in microrna: %s / homologene: %d" % (micro_rna_id, hge_homologeneid))
+                            except FilterError:
+                                self.logger.critical("FilterError thrown in microrna: %s / homologene: %d" % (micro_rna_id, hge_homologeneid))
+
+                            print "JUST RAN on %d" % mrc_geneid
+                            print "TAXID IS: %d" % local_taxid
+                            print "MIRNA: %s" % microrna_seq
+                            print "RAW SEQ: %s" % exon_seq
+                                                            
 
                     except KeyError:
                         # No matching microRNA -> mRNA species pair.
                         pass
+                print "LEN IS %d" % len(filtered_rnahybrid)
 
                 ## We're done calling RNAhybrid and filtering it. Now let's compute scores and put results in the output queue.
                 
@@ -161,15 +178,30 @@ class RNAHybridThread(threading.Thread):
                     
                         weighted_score = 0.0
                         try:
-                            alignment_file = open(ALIGN_PATH + str(mrc_geneid) + '/' + str(mrc_geneid) + '.maf.ordered', 'rb')
+                            with open(ALIGN_PATH + str(mrc_geneid) + '/' + str(mrc_geneid) + '.maf.ordered', 'rb') as in_handle:
+                                reader = maf.Reader(in_handle)
+                                while True:
+                                    pos = reader.file.tell()
+                                    data = reader.next()
+                                    if data is None:
+                                        break
+                                    for c in data.components:
+                                        print c
+                                        pass
                             # We lookup weights using: index = sum(2**species_index)
                             # self.species_index[]
                             # self.weight_matrix[]
-                            alignment_file.close()
+                            in_handle.close()
+                            print "align in %d" % mrc_geneid
                             self.logger.debug("Align found for: %d" % mrc_geneid)
                         except IOError:
+                            print "no align in %d" % mrc_geneid
                             self.logger.debug("No align for: %d" % mrc_geneid)
-                    
+                        print [micro_rna_id, hge_homologeneid,
+                               local_taxid, mrc_geneid, mrc_transcript_no,
+                               weighted_score, unweighted_score,
+                               str(rnahybrid_data)]
+                        print "---------------------------------------"
                         results.append([micro_rna_id, hge_homologeneid,
                                         local_taxid, mrc_geneid, mrc_transcript_no,
                                         weighted_score, unweighted_score,
@@ -309,14 +341,14 @@ def main():
     datestamp = datetime.datetime.now().strftime("%m%d-%H%M")
     logfile = LOG_PATH + datestamp + '.' + socket.gethostname().split('.')[0]
     logging.basicConfig(filename = logfile, filemode = 'w',
-                        format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        format = '%(asctime)s: %(name)-25s: %(levelname)-8s: %(message)s',
                         level = logging.DEBUG)
     
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     # set a format which is simpler for console use
-    formatter = logging.Formatter('%(name)-25s: %(levelname)-8s %(message)s')
+    formatter = logging.Formatter('%(name)-25s: %(levelname)-8s: %(message)s')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
 
@@ -350,18 +382,28 @@ def main():
                     'Rn': 10116, # Rat
                     'Gg': 9031, # Chicken
                     'Mm': 10094} # Mouse
+    revGlobalTaxMap = dict((v,k) for k, v in globalTaxMap.iteritems())
 
     localTaxMap = {'Hs': 7951, # Human
                    'Cf': 7959, # Dog
                    'Rn': 8385, # Rat
                    'Gg': 7458, # Chicken
                    'Mm': 8364} # Mouse
+    revLocalTaxMap = dict((v,k) for k, v in localTaxMap.iteritems())
 
     UCSCTaxMap = {'hg18': 'Hs', # Human
                   'canFam2': 'Cf', # Dog
                   'rn4': 'Rn', # Rat
                   'galGal3': 'Gg', # Chicken
                   'mm9': 'Mm'} # Mouse
+    revUCSCTaxMap = dict((v,k) for k, v in UCSCTaxMap.iteritems())
+
+    shortToMAF = {'Hs': 'Human',
+                  'Cf': 'Dog',
+                  'Rn': 'Rat',
+                  'Gg': 'Chicken',
+                  'Mm': 'Mouse'}
+    revShortToMAF = dict((v,k) for k, v in shortToMAF.iteritems())
     
     assert(len(globalTaxMap) == len(localTaxMap))
     assert(len(localTaxMap) == len(UCSCTaxMap))
@@ -395,6 +437,7 @@ def main():
     mrna_to_exons = _get_mrna_to_exons(dbase, globalTaxMap)
     sanity_overlap_check(mrna_to_exons)
 
+    # Coding sequence excludes 3' and 5'
     #mrna_to_cds = _get_mrna_to_cds(dbase, globalTaxMap)
     #sanity_overlap_check(mrna_to_cds)
     ### ---------------------------------------------
@@ -478,7 +521,7 @@ def main():
             log_main.info("Spawning %s threads." % str(options.threads))
             consume_event = threading.Event()
             for i in range(options.threads):
-                thread = RNAHybridThread(i, consume_event, work_queue, result_queue, species_index, weight_matrix)
+                thread = RNAHybridThread(i+1, consume_event, work_queue, result_queue, species_index, weight_matrix, mrna_to_seq, mrna_to_exons)
                 thread.daemon = True
                 thread.start()
             _first_run = False
@@ -616,6 +659,22 @@ def _get_homologene_to_mrna(dbase, globalTaxMap):
     log_func.info("Populated.")
     return homologene_to_mrna
 
+def _map_local_to_global_pos(pos_range, mrc_geneid, mrna_to_seq, mrna_to_exons):
+    """ The position returned by RNAhybrid is incorrect from a whole-genome perspective, as
+        RNAhybrid only looks at the exon sequence. This computes positions with respect to
+        introns, for use in MAF file parsing.
+    
+    Input:
+       pos_range: A tuple of (START, STOP) following python (inclusive/exclusive) bounds.
+       
+    Returns:
+       A list of position(s): [(start, stop), (start, stop), ...]
+    """
+    positions = []
+    # TODO: Ponder if gcs_complement is important here.
+
+    # Grab start/stop position of 
+    return positions
 
 def _get_mrna_to_seq(dbase, globalTaxMap):
     """ Returns: mrna_to_seq (dict) """
