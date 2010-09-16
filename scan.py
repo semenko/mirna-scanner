@@ -175,7 +175,21 @@ class RNAHybridThread(threading.Thread):
                         # Compute the unweighted sum(exp(delta_g)) score
                         for item in rnahybrid_data:
                             unweighted_score += math.exp(float(item[0]))
-                    
+                            print "item here:"
+                            print item
+                            print "done"
+                            print item[1]
+                            print "item 3:"
+                            print item[3]
+                            # Match word boundaries and mark their positions in tuples
+                            print [match.span() for match in re.finditer("\w+", item[3])]
+                            print "word"
+                            # The [match] iterable marks word boundary positions in tuples.
+                            # This basically takes "ATG AGAGA GAGAGAG" and marks the start/stop pos of bases in the string.
+                            # Then, map_local_to_global converts those ranges to their global exon position, e.g. (0, 3) -> (20500, 20503)
+                            print _map_local_to_global_pos([match.span() for match in re.finditer("\w+", item[3])],
+                                                           mrc_geneid, mrc_transcript_no, self.mrna_to_seq, self.mrna_to_exons)
+                            
                         weighted_score = 0.0
                         try:
                             with open(ALIGN_PATH + str(mrc_geneid) + '/' + str(mrc_geneid) + '.maf.ordered', 'rb') as in_handle:
@@ -239,6 +253,7 @@ def rnahybrid(utr_seq, mirna_query):
                                 stdout = subprocess.PIPE)
     
     # and then run filter, piping the output in between.
+    # *** filter is /undocumented/ and impossible to interpret. Not entirely clear what it does :(
     process2 = subprocess.Popen([FILTER_PATH, FILTER_SETTINGS],
                                 bufsize = 1,
                                 shell = False,
@@ -251,11 +266,11 @@ def rnahybrid(utr_seq, mirna_query):
         # We may wish to unpack these values, and store first two as int().
         # Filter output is \t separated, and looks like (after splitting):
         # ['-24.8', '742', '  G         GUAG  A     C', '   UGUGCAGCC    GC ACCUU ', '   AUAUGUUGG    UG UGGAG ', 'UUG            A  A     U']
-        
-        # Filter to bindings of >=8 bases
-        #if re.search("[ATGCN]{8,}", strn)
 
-        results.append(tuple(line.split('\t')[3:]))
+        output = tuple(line.split('\t')[3:])
+        # Filter to bindings of >=6 bases
+        if re.search("[AUTGCN]{6,}", output[3]):
+            results.append(output)
 
     # Sort the list by position. This can be costly :(
     results.sort(lambda x, y: cmp(int(x[1]), int(y[1])))
@@ -659,22 +674,80 @@ def _get_homologene_to_mrna(dbase, globalTaxMap):
     log_func.info("Populated.")
     return homologene_to_mrna
 
-def _map_local_to_global_pos(pos_range, mrc_geneid, mrna_to_seq, mrna_to_exons):
+def _map_local_to_global_pos(pos_ranges, mrc_geneid, mrc_transcript_no, mrna_to_seq, mrna_to_exons):
     """ The position returned by RNAhybrid is incorrect from a whole-genome perspective, as
         RNAhybrid only looks at the exon sequence. This computes positions with respect to
         introns, for use in MAF file parsing.
     
     Input:
-       pos_range: A tuple of (START, STOP) following python (inclusive/exclusive) bounds.
+       pos_range: A list of tuples of (START, STOP) following python (inclusive/exclusive) bounds.
        
     Returns:
        A list of position(s): [(start, stop), (start, stop), ...]
     """
-    positions = []
     # TODO: Ponder if gcs_complement is important here.
+    gcs_chromosome, gcs_taxid, gcs_localtaxid, gcs_complement, gcs_start, gcs_stop = mrna_to_seq[mrc_geneid]
+    # val: [(mrc_start, mrc_stop), (mrc_start, mrc_stop), ...]
+    try:
+        exon_list = mrna_to_exons[(mrc_geneid, mrc_transcript_no)]
+    except KeyError:
+        self.logger.error("No exon mapping found! Something is terribly wrong! mrc_geneid: %s" % str(mrc_geneid))
+
+    # Example data:
+    # [(1, 7), (8, 9), (11, 15), (16, 19), (22, 26)] = pos_ranges
+    # [(2137585, 2137803), (2138591, 2138794), (2138974, 2139015) ] = exon_list
+    #
+    # We're trying to map (1, 7) to (2137586, 2137592), bridging gaps in exons.
+    # For example, mapping: (1, 7) on exon (100, 105), (105, 110) should return:
+    # (101, 105), (105, 107) !!! Remember, python is (inclusive, exclusive)
+
+    # Man, this function sucks. There has to be a more elegant way to map these values.
+    # Do NOT do destrutive things here -- The list contents are inherited pointers!
+    translated_positions = []
+    exon_list_pointer = 0
+    exon_offset = 0
+
+    for l_start, l_end in pos_ranges:
+        # Store our start and end positions
+        s_pos = -1
+        e_pos = -1
+        while True:
+            #print "list | offset: %d | %d" % (exon_list_pointer, exon_offset)
+            #print "l_st | l_end: %d | %d" % (l_start, l_end)
+            #print "s_pos | e_pos: %d | %d\n" % (s_pos, e_pos)
+            exon = exon_list[exon_list_pointer]
+            #print "exon is: %s" % str(exon)
+            exon_len = exon[1] - exon[0]
+            # Do we have our first start position yet?
+            if (s_pos == -1):
+                if exon_len >= (l_start - exon_offset):
+                    s_pos = exon[0] + (l_start - exon_offset)
+                else:
+                    exon_list_pointer += 1
+                    exon_offset += exon_len
+                    continue # Skip rest of loop, go back to "while"
+            if (e_pos == -1):
+                if exon_len >= (l_end - exon_offset):
+                    e_pos = exon[0] + (l_end - exon_offset)
+                else:
+                    exon_list_pointer += 1
+                    exon_offset += exon_len
+                    continue # Skip rest of loop, go back to "while"
+            translated_positions.append((s_pos, e_pos))
+            break
+
+    # print "exon list:"
+    # print exon_list
+    # print "pos_list:"
+    # print pos_ranges
+    # print "translated!"
+    # print translated_positions
+
+    # Sanity check that (at least) the total number of basepairs match.
+    assert(sum([pos[1]-pos[0] for pos in pos_ranges]) == sum([pos[1]-pos[0] for pos in translated_positions]))
 
     # Grab start/stop position of 
-    return positions
+    return translated_positions
 
 def _get_mrna_to_seq(dbase, globalTaxMap):
     """ Returns: mrna_to_seq (dict) """
